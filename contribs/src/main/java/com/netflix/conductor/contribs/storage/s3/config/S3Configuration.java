@@ -10,19 +10,22 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package com.netflix.conductor.contribs.lock;
+package com.netflix.conductor.contribs.storage.s3.config;
 
-import com.netflix.conductor.core.sync.Lock;
+import com.netflix.conductor.common.utils.ExternalPayloadStorage;
+import com.netflix.conductor.contribs.storage.s3.S3PayloadStorage;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnProperty(name = "conductor.workflow-execution-lock.type", havingValue = "local_only")
-public class LocalOnlyLockConfiguration {
+@EnableConfigurationProperties(S3Properties.class)
+@ConditionalOnProperty(name = "conductor.external-payload-storage.type", havingValue = "s3")
+public class S3Configuration {
 
     @Bean
-    public Lock provideLock() {
-        return new LocalOnlyLock();
+    public ExternalPayloadStorage s3ExternalPayloadStorage(S3Properties properties) {
+        return new S3PayloadStorage(properties);
     }
 }

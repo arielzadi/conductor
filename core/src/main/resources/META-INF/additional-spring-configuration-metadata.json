@@ -107,6 +107,10 @@
         {
           "value": "s3",
           "description": "Use AWS S3 as the external payload storage."
+        },
+        {
+          "value": "gcs",
+          "description": "Use Google Cloud Storage as the external payload storage."
         }
       ]
     }

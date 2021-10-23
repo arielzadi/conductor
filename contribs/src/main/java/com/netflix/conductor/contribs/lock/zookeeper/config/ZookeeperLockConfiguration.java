@@ -10,22 +10,26 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package com.netflix.conductor.contribs.storage.config;
+package com.netflix.conductor.contribs.lock.zookeeper.config;
 
-import com.netflix.conductor.common.utils.ExternalPayloadStorage;
-import com.netflix.conductor.contribs.storage.S3PayloadStorage;
+import com.netflix.conductor.contribs.lock.zookeeper.lock.ZookeeperLock;
+import com.netflix.conductor.core.sync.Lock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(S3Properties.class)
-@ConditionalOnProperty(name = "conductor.external-payload-storage.type", havingValue = "s3")
-public class S3Configuration {
+@EnableConfigurationProperties(ZookeeperProperties.class)
+@ConditionalOnProperty(name = "conductor.workflow-execution-lock.type", havingValue = "zookeeper")
+public class ZookeeperLockConfiguration {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperLockConfiguration.class);
 
-    @Bean
-    public ExternalPayloadStorage s3ExternalPayloadStorage(S3Properties properties) {
-        return new S3PayloadStorage(properties);
+    @Bean()
+    public Lock provideZookeeperLock(ZookeeperProperties properties) {
+        LOGGER.info("Initialized zookeeper lock!");
+        return new ZookeeperLock(properties);
     }
 }

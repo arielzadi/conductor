@@ -52,7 +52,7 @@ public class ConductorCoreConfiguration {
 
     @ConditionalOnProperty(name = "conductor.workflow-execution-lock.type", havingValue = "noop_lock", matchIfMissing = true)
     @Bean
-    public Lock provideLock() {
+    public Lock provideNoopLock() {
         return new NoopLock();
     }
 

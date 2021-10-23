@@ -78,7 +78,7 @@ public class RedisLockConfiguration {
     }
 
     @Bean
-    public Lock provideLock(Redisson redisson, RedisLockProperties properties) {
+    public Lock provideRedisLock(Redisson redisson, RedisLockProperties properties) {
         return new RedisLock(redisson, properties);
     }
 }
