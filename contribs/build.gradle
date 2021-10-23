@@ -21,6 +21,7 @@ dependencies {
     implementation "com.amazonaws:aws-java-sdk-sqs:${revAwsSdk}"
 
     implementation "com.google.cloud:google-cloud-storage:${revGoogleCloudStorageSdk}"
+    implementation 'com.google.cloud:google-cloud-pubsub:1.114.7'
     implementation 'com.google.cloud:google-cloud-nio:0.123.10'
 
     implementation "org.apache.commons:commons-lang3"
