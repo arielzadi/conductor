@@ -368,6 +368,12 @@
             ],
             "locked": "1.19.4"
         },
+        "com.thoughtworks.xstream:xstream": {
+            "firstLevelTransitive": [
+                "com.netflix.conductor:conductor-redis-persistence"
+            ],
+            "locked": "1.4.18"
+        },
         "commons-io:commons-io": {
             "firstLevelTransitive": [
                 "com.netflix.conductor:conductor-client",
@@ -501,7 +507,6 @@
         },
         "org.apache.logging.log4j:log4j-web": {
             "firstLevelTransitive": [
-                "com.netflix.conductor:conductor-cassandra-persistence",
                 "com.netflix.conductor:conductor-server"
             ],
             "locked": "2.13.3"
