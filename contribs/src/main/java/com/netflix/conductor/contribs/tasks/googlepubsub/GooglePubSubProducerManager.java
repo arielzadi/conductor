@@ -54,7 +54,7 @@ public class GooglePubSubProducerManager {
 
     @Autowired
     public GooglePubSubProducerManager(@Value("${conductor.tasks.google-pubsub-publish.googleApplicationCredentialsPath:}") String googleApplicationCredentialsPath,
-                                       @Value("${conductor.tasks.google-pubsub-publish.projectId:10}") String projectId,
+                                       @Value("${conductor.tasks.google-pubsub-publish.projectId}") String projectId,
                                        @Value("${conductor.tasks.google-pubsub-publish.cacheSize:10}") int cacheSize,
                                        @Value("${conductor.tasks.google-pubsub-publish:120000ms}") Duration cacheTime) {
         this.projectId=projectId;

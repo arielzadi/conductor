@@ -12,7 +12,7 @@
  */
 package com.netflix.conductor.common.metadata.tasks;
 
-import com.github.vmg.protogen.annotations.ProtoEnum;
+import com.netflix.conductor.annotations.protogen.ProtoEnum;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -39,7 +39,8 @@ public enum TaskType {
     TERMINATE,
     KAFKA_PUBLISH,
     JSON_JQ_TRANSFORM,
-    SET_VARIABLE;
+    SET_VARIABLE,
+    CLOUD_PUBSUB_PUBLISH;
 
     /**
      * TaskType constants representing each of the possible enumeration values. Motivation: to not have any
