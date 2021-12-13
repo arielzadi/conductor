@@ -274,35 +274,34 @@ public @interface WorkflowTaskTypeConstraint {
         }
 
         private boolean isGoogleCloudPubSubTaskValid(WorkflowTask workflowTask, ConstraintValidatorContext context) {
-            //TODO:....
             boolean valid = true;
             boolean isInputParameterSet = false;
             boolean isInputTemplateSet = false;
 
-            //Either http_request in WorkflowTask inputParam should be set or in inputTemplate Taskdef should be set
+            //Either kafka_request in WorkflowTask inputParam should be set or in inputTemplate Taskdef should be set
             if (workflowTask.getInputParameters() != null && workflowTask.getInputParameters()
-                    .containsKey("http_request")) {
+                    .containsKey("google_pubsub_request")) {
                 isInputParameterSet = true;
             }
 
-            TaskDef taskDef = Optional
-                    .ofNullable(workflowTask.getTaskDefinition())
+            TaskDef taskDef = Optional.ofNullable(workflowTask.getTaskDefinition())
                     .orElse(ValidationContext.getMetadataDAO().getTaskDef(workflowTask.getName()));
 
             if (taskDef != null && taskDef.getInputTemplate() != null && taskDef.getInputTemplate()
-                    .containsKey("http_request")) {
+                    .containsKey("google_pubsub_request")) {
                 isInputTemplateSet = true;
             }
 
             if (!(isInputParameterSet || isInputTemplateSet)) {
                 String message = String
-                        .format(PARAM_REQUIRED_STRING_FORMAT, "inputParameters.http_request", TaskType.HTTP,
+                        .format(PARAM_REQUIRED_STRING_FORMAT, "inputParameters.google_pubsub_request", TaskType.TASK_TYPE_GOOGLE_CLOUD_PUBSUB,
                                 workflowTask.getName());
                 context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
                 valid = false;
             }
 
             return valid;
+
         }
 
         private boolean isForkJoinTaskValid(WorkflowTask workflowTask, ConstraintValidatorContext context) {
