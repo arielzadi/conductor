@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,8 +12,10 @@
  */
 package com.netflix.conductor.core.utils;
 
-import com.netflix.conductor.common.metadata.tasks.Task;
 import org.apache.commons.lang3.StringUtils;
+
+import com.netflix.conductor.common.metadata.tasks.Task;
+import com.netflix.conductor.model.TaskModel;
 
 public class QueueUtils {
 
@@ -21,9 +23,20 @@ public class QueueUtils {
     private static final String ISOLATION_SEPARATOR = "-";
     private static final String EXECUTION_NAME_SPACE_SEPARATOR = "@";
 
+    public static String getQueueName(TaskModel taskModel) {
+        return getQueueName(
+                taskModel.getTaskType(),
+                taskModel.getDomain(),
+                taskModel.getIsolationGroupId(),
+                taskModel.getExecutionNameSpace());
+    }
+
     public static String getQueueName(Task task) {
-        return getQueueName(task.getTaskType(), task.getDomain(), task.getIsolationGroupId(),
-            task.getExecutionNameSpace());
+        return getQueueName(
+                task.getTaskType(),
+                task.getDomain(),
+                task.getIsolationGroupId(),
+                task.getExecutionNameSpace());
     }
 
     /**
@@ -33,8 +46,8 @@ public class QueueUtils {
      * @param executionNameSpace
      * @return //domain:taskType@eexecutionNameSpace-isolationGroup
      */
-    public static String getQueueName(String taskType, String domain, String isolationGroup,
-        String executionNameSpace) {
+    public static String getQueueName(
+            String taskType, String domain, String isolationGroup, String executionNameSpace) {
 
         String queueName;
         if (domain == null) {
@@ -58,9 +71,10 @@ public class QueueUtils {
     }
 
     public static String getExecutionNameSpace(String queueName) {
-        if (StringUtils.contains(queueName, ISOLATION_SEPARATOR) && StringUtils
-            .contains(queueName, EXECUTION_NAME_SPACE_SEPARATOR)) {
-            return StringUtils.substringBetween(queueName, EXECUTION_NAME_SPACE_SEPARATOR, ISOLATION_SEPARATOR);
+        if (StringUtils.contains(queueName, ISOLATION_SEPARATOR)
+                && StringUtils.contains(queueName, EXECUTION_NAME_SPACE_SEPARATOR)) {
+            return StringUtils.substringBetween(
+                    queueName, EXECUTION_NAME_SPACE_SEPARATOR, ISOLATION_SEPARATOR);
         } else if (StringUtils.contains(queueName, EXECUTION_NAME_SPACE_SEPARATOR)) {
             return StringUtils.substringAfter(queueName, EXECUTION_NAME_SPACE_SEPARATOR);
         } else {

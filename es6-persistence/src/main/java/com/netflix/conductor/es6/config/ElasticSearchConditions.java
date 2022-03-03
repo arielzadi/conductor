@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -17,8 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 public class ElasticSearchConditions {
 
-    private ElasticSearchConditions() {
-    }
+    private ElasticSearchConditions() {}
 
     public static class ElasticSearchV6Enabled extends AllNestedConditions {
 
@@ -27,15 +26,17 @@ public class ElasticSearchConditions {
         }
 
         @SuppressWarnings("unused")
-        @ConditionalOnProperty(name = "conductor.indexing.enabled", havingValue = "true", matchIfMissing = true)
-        static class enabledIndexing {
-
-        }
+        @ConditionalOnProperty(
+                name = "conductor.indexing.enabled",
+                havingValue = "true",
+                matchIfMissing = true)
+        static class enabledIndexing {}
 
         @SuppressWarnings("unused")
-        @ConditionalOnProperty(name = "conductor.elasticsearch.version", havingValue = "6", matchIfMissing = true)
-        static class enabledES6 {
-
-        }
+        @ConditionalOnProperty(
+                name = "conductor.elasticsearch.version",
+                havingValue = "6",
+                matchIfMissing = true)
+        static class enabledES6 {}
     }
 }

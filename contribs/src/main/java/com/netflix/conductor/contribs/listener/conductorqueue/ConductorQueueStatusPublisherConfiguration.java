@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,22 +12,30 @@
  */
 package com.netflix.conductor.contribs.listener.conductorqueue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.conductor.core.listener.WorkflowStatusListener;
-import com.netflix.conductor.dao.QueueDAO;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.netflix.conductor.core.dal.ModelMapper;
+import com.netflix.conductor.core.listener.WorkflowStatusListener;
+import com.netflix.conductor.dao.QueueDAO;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Configuration
 @EnableConfigurationProperties(ConductorQueueStatusPublisherProperties.class)
-@ConditionalOnProperty(name = "conductor.workflow-status-listener.type", havingValue = "queue_publisher")
+@ConditionalOnProperty(
+        name = "conductor.workflow-status-listener.type",
+        havingValue = "queue_publisher")
 public class ConductorQueueStatusPublisherConfiguration {
 
     @Bean
-    public WorkflowStatusListener getWorkflowStatusListener(QueueDAO queueDAO,
-        ConductorQueueStatusPublisherProperties properties, ObjectMapper objectMapper) {
-        return new ConductorQueueStatusPublisher(queueDAO, objectMapper, properties);
+    public WorkflowStatusListener getWorkflowStatusListener(
+            QueueDAO queueDAO,
+            ModelMapper modelMapper,
+            ConductorQueueStatusPublisherProperties properties,
+            ObjectMapper objectMapper) {
+        return new ConductorQueueStatusPublisher(queueDAO, modelMapper, objectMapper, properties);
     }
 }

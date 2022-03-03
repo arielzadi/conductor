@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,30 +12,34 @@
  */
 package com.netflix.conductor.core.events.queue;
 
-import com.netflix.conductor.core.config.ConductorProperties;
-import com.netflix.conductor.core.events.EventQueueProvider;
-import com.netflix.conductor.dao.QueueDAO;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+
+import com.netflix.conductor.core.config.ConductorProperties;
+import com.netflix.conductor.core.events.EventQueueProvider;
+import com.netflix.conductor.dao.QueueDAO;
+
 import rx.Scheduler;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
- * Default provider for {@link com.netflix.conductor.core.events.queue.ObservableQueue} that listens on the
- * <i>conductor</i> queue prefix.
+ * Default provider for {@link com.netflix.conductor.core.events.queue.ObservableQueue} that listens
+ * on the <i>conductor</i> queue prefix.
  *
- * <p><code>Set conductor.event-queues.default.enabled=false</code> to disable the default queue.</p>
+ * <p><code>Set conductor.event-queues.default.enabled=false</code> to disable the default queue.
  *
  * @see ConductorObservableQueue
  */
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 @Component
-@ConditionalOnProperty(name = "conductor.event-queues.default.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+        name = "conductor.event-queues.default.enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class ConductorEventQueueProvider implements EventQueueProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConductorEventQueueProvider.class);
@@ -44,7 +48,8 @@ public class ConductorEventQueueProvider implements EventQueueProvider {
     private final ConductorProperties properties;
     private final Scheduler scheduler;
 
-    public ConductorEventQueueProvider(QueueDAO queueDAO, ConductorProperties properties, Scheduler scheduler) {
+    public ConductorEventQueueProvider(
+            QueueDAO queueDAO, ConductorProperties properties, Scheduler scheduler) {
         this.queueDAO = queueDAO;
         this.properties = properties;
         this.scheduler = scheduler;
@@ -58,7 +63,8 @@ public class ConductorEventQueueProvider implements EventQueueProvider {
     @Override
     @NonNull
     public ObservableQueue getQueue(String queueURI) {
-        return queues
-            .computeIfAbsent(queueURI, q -> new ConductorObservableQueue(queueURI, queueDAO, properties, scheduler));
+        return queues.computeIfAbsent(
+                queueURI,
+                q -> new ConductorObservableQueue(queueURI, queueDAO, properties, scheduler));
     }
 }

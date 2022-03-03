@@ -12,28 +12,41 @@
  */
 package com.netflix.conductor.es6.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.conductor.common.run.Workflow;
-import com.netflix.conductor.core.utils.IDGenerator;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.commons.io.FileUtils;
 import org.springframework.util.ResourceUtils;
 
-import java.nio.charset.StandardCharsets;
+import com.netflix.conductor.common.run.TaskSummary;
+import com.netflix.conductor.common.run.WorkflowSummary;
+import com.netflix.conductor.core.utils.IDGenerator;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class TestUtils {
 
     private static final String WORKFLOW_INSTANCE_ID_PLACEHOLDER = "WORKFLOW_INSTANCE_ID";
 
-    public static Workflow loadWorkflowSnapshot(ObjectMapper objectMapper, String resourceFileName) {
+    public static WorkflowSummary loadWorkflowSnapshot(
+            ObjectMapper objectMapper, String resourceFileName) {
         try {
             String content = loadJsonResource(resourceFileName);
             String workflowId = IDGenerator.generate();
             content = content.replace(WORKFLOW_INSTANCE_ID_PLACEHOLDER, workflowId);
 
-            Workflow workflow = objectMapper.readValue(content, Workflow.class);
-            workflow.setWorkflowId(workflowId);
+            return objectMapper.readValue(content, WorkflowSummary.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
 
-            return workflow;
+    public static TaskSummary loadTaskSnapshot(ObjectMapper objectMapper, String resourceFileName) {
+        try {
+            String content = loadJsonResource(resourceFileName);
+            String workflowId = IDGenerator.generate();
+            content = content.replace(WORKFLOW_INSTANCE_ID_PLACEHOLDER, workflowId);
+
+            return objectMapper.readValue(content, TaskSummary.class);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
@@ -41,8 +54,8 @@ public class TestUtils {
 
     public static String loadJsonResource(String resourceFileName) {
         try {
-            return FileUtils
-                .readFileToString(ResourceUtils.getFile("classpath:" + resourceFileName + ".json"),
+            return FileUtils.readFileToString(
+                    ResourceUtils.getFile("classpath:" + resourceFileName + ".json"),
                     StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);

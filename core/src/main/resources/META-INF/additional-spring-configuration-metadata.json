@@ -111,6 +111,10 @@
         {
           "value": "gcs",
           "description": "Use Google Cloud Storage as the external payload storage."
+        },
+        {
+          "value": "postgres",
+          "description": "Use PostgreSQL as the external payload storage."
         }
       ]
     }

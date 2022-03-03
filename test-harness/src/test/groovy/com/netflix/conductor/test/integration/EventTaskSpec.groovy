@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,13 +12,14 @@
  */
 package com.netflix.conductor.test.integration
 
+import org.springframework.beans.factory.annotation.Autowired
+
 import com.netflix.conductor.common.metadata.tasks.Task
 import com.netflix.conductor.common.metadata.tasks.TaskType
 import com.netflix.conductor.common.run.Workflow
 import com.netflix.conductor.core.execution.tasks.Event
 import com.netflix.conductor.dao.QueueDAO
 import com.netflix.conductor.test.base.AbstractSpecification
-import org.springframework.beans.factory.annotation.Autowired
 
 import static com.netflix.conductor.test.util.WorkflowTestUtil.verifyPolledAndAcknowledgedTask
 
@@ -44,15 +45,10 @@ class EventTaskSpec extends AbstractSpecification {
         then: "Retrieve the workflow"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {
             status == Workflow.WorkflowStatus.RUNNING
-            tasks.size() == 1
+            tasks.size() == 2
             tasks[0].taskType == TaskType.EVENT.name()
-            tasks[0].status == Task.Status.SCHEDULED
+            tasks[0].status == Task.Status.COMPLETED
         }
-
-        when: "the event task is executed by issuing a system task call"
-        List<String> polledTaskIds = queueDAO.pop(eventTask.taskType, 1, 200)
-        String eventTaskId = polledTaskIds.get(0)
-        asyncSystemTaskExecutor.execute(eventTask, eventTaskId)
 
         then: "Retrieve the workflow"
         with(workflowExecutionService.getExecutionStatus(workflowInstanceId, true)) {

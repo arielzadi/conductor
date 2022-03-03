@@ -23,9 +23,10 @@ Manages the task workers thread pool and server communication (poll and task upd
 Use the [Builder](https://github.com/Netflix/conductor/blob/master/client/src/main/java/com/netflix/conductor/client/automator/TaskRunnerConfigurer.java#L62) to create an instance of the TaskRunnerConfigurer. The builder accepts the following parameters:
 
 Initialize the Builder with the following:
- TaskClient | TaskClient used to communicate to the Conductor server |
-| Workers | Workers that will be used for polling work and task execution. |
 
+ TaskClient 
+ | TaskClient used to communicate to the Conductor server |
+| Workers | Workers that will be used for polling work and task execution. |
 
 | Parameter | Description | Default |
 | --- | --- | --- |
@@ -34,6 +35,7 @@ Initialize the Builder with the following:
 | withSleepWhenRetry | Time in milliseconds, for which the thread should sleep when task update call fails, before retrying the operation. | 500 |
 | withUpdateRetryCount | Number of attempts to be made when updating task status when update status call fails. | 3 |
 | withWorkerNamePrefix | String prefix that will be used for all the workers. | workflow-worker- |
+| withShutdownGracePeriodSeconds | Waiting seconds before forcing shutdown of your worker | 10 |
 
 Once an instance is created, call `init()` method to initialize the TaskPollExecutor and begin the polling and execution of tasks.
 

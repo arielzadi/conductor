@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,11 +12,8 @@
  */
 package com.netflix.conductor.mysql.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.conductor.mysql.dao.MySQLExecutionDAO;
-import com.netflix.conductor.mysql.dao.MySQLMetadataDAO;
-import com.netflix.conductor.mysql.dao.MySQLQueueDAO;
 import javax.sql.DataSource;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -25,7 +22,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
 
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+import com.netflix.conductor.mysql.dao.MySQLExecutionDAO;
+import com.netflix.conductor.mysql.dao.MySQLMetadataDAO;
+import com.netflix.conductor.mysql.dao.MySQLQueueDAO;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(MySQLProperties.class)
 @ConditionalOnProperty(name = "conductor.db.type", havingValue = "mysql")
@@ -36,7 +38,8 @@ public class MySQLConfiguration {
 
     @Bean
     @DependsOn({"flyway", "flywayInitializer"})
-    public MySQLMetadataDAO mySqlMetadataDAO(ObjectMapper objectMapper, DataSource dataSource, MySQLProperties properties) {
+    public MySQLMetadataDAO mySqlMetadataDAO(
+            ObjectMapper objectMapper, DataSource dataSource, MySQLProperties properties) {
         return new MySQLMetadataDAO(objectMapper, dataSource, properties);
     }
 

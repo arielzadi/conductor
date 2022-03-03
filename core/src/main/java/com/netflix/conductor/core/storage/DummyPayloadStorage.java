@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,24 +12,25 @@
  */
 package com.netflix.conductor.core.storage;
 
+import java.io.InputStream;
+
 import com.netflix.conductor.common.run.ExternalStorageLocation;
 import com.netflix.conductor.common.utils.ExternalPayloadStorage;
 
-import java.io.InputStream;
-
 /**
- * A dummy implementation of {@link ExternalPayloadStorage} used when no external payload is configured
+ * A dummy implementation of {@link ExternalPayloadStorage} used when no external payload is
+ * configured
  */
 public class DummyPayloadStorage implements ExternalPayloadStorage {
 
     @Override
-    public ExternalStorageLocation getLocation(Operation operation, PayloadType payloadType, String path) {
+    public ExternalStorageLocation getLocation(
+            Operation operation, PayloadType payloadType, String path) {
         return null;
     }
 
     @Override
-    public void upload(String path, InputStream payload, long payloadSize) {
-    }
+    public void upload(String path, InputStream payload, long payloadSize) {}
 
     @Override
     public InputStream download(String path) {

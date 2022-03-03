@@ -52,6 +52,7 @@ include 'zookeeper-lock'
 
 include 'azureblob-storage'
 include 'google-cloud-storage'
+include 'postgres-external-storage'
 
 include 'redis-concurrency-limit'
 

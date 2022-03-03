@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,8 +15,9 @@ package com.netflix.conductor.validations;
 import com.netflix.conductor.dao.MetadataDAO;
 
 /**
- * This context is defined to get access to {@link MetadataDAO} inside {@link WorkflowTaskValidConstraint} constraint
- * validator to validate {@link com.netflix.conductor.common.metadata.workflow.WorkflowTask}.
+ * This context is defined to get access to {@link MetadataDAO} inside {@link
+ * WorkflowTaskValidConstraint} constraint validator to validate {@link
+ * com.netflix.conductor.common.metadata.workflow.WorkflowTask}.
  */
 public class ValidationContext {
 

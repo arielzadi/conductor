@@ -4,7 +4,7 @@ import { DataTable, Text, LinearProgress } from "../../components";
 
 export default function TaskLogs({ task }) {
   const { taskId } = task;
-  const { data: log, isFetching } = useFetch(`/api/tasks/${taskId}/log`);
+  const { data: log, isFetching } = useFetch(`/tasks/${taskId}/log`);
 
   if (isFetching) {
     return <LinearProgress />;
@@ -13,8 +13,8 @@ export default function TaskLogs({ task }) {
     <DataTable
       data={log}
       columns={[
-        { name: "createdTime", type: "date", label: "Timestamp" },
-        { name: "log", label: "Entry" },
+        { name: "createdTime", type: "date", label: "Timestamp", width: "180px" },
+        { name: "log", label: "Entry", style: "div:first-child { white-space: pre-wrap }" },
       ]}
       title="Task Logs"
     />

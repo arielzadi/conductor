@@ -1,40 +1,40 @@
 /*
- *  Copyright 2021 Netflix, Inc.
- *  <p>
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- *  the License. You may obtain a copy of the License at
- *  <p>
- *  http://www.apache.org/licenses/LICENSE-2.0
- *  <p>
- *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- *  specific language governing permissions and limitations under the License.
+ * Copyright 2022 Netflix, Inc.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.netflix.conductor.core.execution.tasks;
-
-import com.netflix.conductor.common.metadata.tasks.Task;
-import com.netflix.conductor.common.metadata.tasks.Task.Status;
-import com.netflix.conductor.common.metadata.tasks.TaskDef;
-import com.netflix.conductor.common.metadata.tasks.TaskType;
-import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
-import com.netflix.conductor.common.run.Workflow;
-import com.netflix.conductor.core.config.ConductorProperties;
-import com.netflix.conductor.core.execution.DeciderService;
-import com.netflix.conductor.core.execution.WorkflowExecutor;
-import com.netflix.conductor.core.listener.WorkflowStatusListener;
-import com.netflix.conductor.core.metadata.MetadataMapperService;
-import com.netflix.conductor.core.orchestration.ExecutionDAOFacade;
-import com.netflix.conductor.core.utils.ParametersUtils;
-import com.netflix.conductor.dao.MetadataDAO;
-import com.netflix.conductor.dao.QueueDAO;
-import com.netflix.conductor.service.ExecutionLockService;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import com.netflix.conductor.common.metadata.tasks.TaskDef;
+import com.netflix.conductor.common.metadata.tasks.TaskType;
+import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
+import com.netflix.conductor.core.config.ConductorProperties;
+import com.netflix.conductor.core.dal.ExecutionDAOFacade;
+import com.netflix.conductor.core.execution.DeciderService;
+import com.netflix.conductor.core.execution.WorkflowExecutor;
+import com.netflix.conductor.core.listener.WorkflowStatusListener;
+import com.netflix.conductor.core.metadata.MetadataMapperService;
+import com.netflix.conductor.core.utils.ParametersUtils;
+import com.netflix.conductor.dao.MetadataDAO;
+import com.netflix.conductor.dao.QueueDAO;
+import com.netflix.conductor.model.TaskModel;
+import com.netflix.conductor.model.WorkflowModel;
+import com.netflix.conductor.service.ExecutionLockService;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -62,18 +62,19 @@ public class TestDoWhile {
     ConductorProperties properties;
     ParametersUtils parametersUtils;
     SystemTaskRegistry systemTaskRegistry;
-    private Workflow workflow;
-    private Task loopTask;
+    private WorkflowModel workflow;
+    private TaskModel loopTask;
     private TaskDef loopTaskDef;
     private WorkflowTask loopWorkflowTask;
-    private Task task1;
-    private Task task2;
+    private TaskModel task1;
+    private TaskModel task2;
     private WorkflowExecutor provider;
     private DoWhile doWhile;
 
+    @SuppressWarnings("unchecked")
     @Before
     public void setup() {
-        workflow = mock(Workflow.class);
+        workflow = mock(WorkflowModel.class);
         deciderService = mock(DeciderService.class);
         metadataDAO = mock(MetadataDAO.class);
         queueDAO = mock(QueueDAO.class);
@@ -87,29 +88,40 @@ public class TestDoWhile {
         when(properties.getActiveWorkerLastPollTimeout()).thenReturn(Duration.ofSeconds(100));
         when(properties.getTaskExecutionPostponeDuration()).thenReturn(Duration.ofSeconds(60));
         when(properties.getWorkflowOffsetTimeout()).thenReturn(Duration.ofSeconds(30));
-        provider = spy(new WorkflowExecutor(deciderService, metadataDAO, queueDAO, metadataMapperService,
-            workflowStatusListener, executionDAOFacade, properties, executionLockService, systemTaskRegistry, parametersUtils));
+        provider =
+                spy(
+                        new WorkflowExecutor(
+                                deciderService,
+                                metadataDAO,
+                                queueDAO,
+                                metadataMapperService,
+                                workflowStatusListener,
+                                executionDAOFacade,
+                                properties,
+                                executionLockService,
+                                systemTaskRegistry,
+                                parametersUtils));
         WorkflowTask loopWorkflowTask1 = new WorkflowTask();
         loopWorkflowTask1.setTaskReferenceName("task1");
         loopWorkflowTask1.setName("task1");
         WorkflowTask loopWorkflowTask2 = new WorkflowTask();
         loopWorkflowTask2.setTaskReferenceName("task2");
         loopWorkflowTask2.setName("task2");
-        task1 = new Task();
+        task1 = new TaskModel();
         task1.setWorkflowTask(loopWorkflowTask1);
         task1.setReferenceTaskName("task1");
-        task1.setStatus(Task.Status.COMPLETED);
+        task1.setStatus(TaskModel.Status.COMPLETED);
         task1.setTaskType(TaskType.HTTP.name());
         task1.setInputData(new HashMap<>());
         task1.setIteration(1);
-        task2 = new Task();
+        task2 = new TaskModel();
         task2.setWorkflowTask(loopWorkflowTask2);
         task2.setReferenceTaskName("task2");
-        task2.setStatus(Task.Status.COMPLETED);
+        task2.setStatus(TaskModel.Status.COMPLETED);
         task2.setTaskType(TaskType.HTTP.name());
         task2.setInputData(new HashMap<>());
         task2.setIteration(1);
-        loopTask = new Task();
+        loopTask = new TaskModel();
         loopTask.setReferenceTaskName("loopTask");
         loopTask.setTaskType(TaskType.DO_WHILE.name());
         loopTask.setInputData(new HashMap<>());
@@ -118,8 +130,10 @@ public class TestDoWhile {
         loopWorkflowTask.setTaskReferenceName("loopTask");
         loopWorkflowTask.setType(TaskType.DO_WHILE.name());
         loopWorkflowTask.setName("loopTask");
-        loopWorkflowTask.setLoopCondition("if ($.loopTask['iteration'] < 1) { false; } else { true; }");
-        loopWorkflowTask.setLoopOver(Arrays.asList(task1.getWorkflowTask(), task2.getWorkflowTask()));
+        loopWorkflowTask.setLoopCondition(
+                "if ($.loopTask['iteration'] < 1) { false; } else { true; }");
+        loopWorkflowTask.setLoopOver(
+                Arrays.asList(task1.getWorkflowTask(), task2.getWorkflowTask()));
         loopTask.setWorkflowTask(loopWorkflowTask);
         doWhile = new DoWhile(parametersUtils);
         loopTaskDef = mock(TaskDef.class);
@@ -128,58 +142,65 @@ public class TestDoWhile {
         doReturn(task2).when(workflow).getTaskByRefName(task2.getReferenceTaskName());
         doReturn(task1).when(workflow).getTaskByRefName("task1__2");
         doReturn(task2).when(workflow).getTaskByRefName("task2__2");
-        doReturn(new HashMap<>()).when(parametersUtils)
-            .getTaskInputV2(isA(Map.class), isA(Workflow.class), isA(String.class), isA(TaskDef.class));
+        doReturn(new HashMap<>())
+                .when(parametersUtils)
+                .getTaskInputV2(
+                        isA(Map.class),
+                        isA(WorkflowModel.class),
+                        isA(String.class),
+                        isA(TaskDef.class));
     }
 
     @Test
     public void testSingleSuccessfulIteration() {
         doReturn(Arrays.asList(task1, task2)).when(workflow).getTasks();
-        loopWorkflowTask.setLoopCondition("if ($.loopTask['iteration'] < 1) { true; } else { false; }");
+        loopWorkflowTask.setLoopCondition(
+                "if ($.loopTask['iteration'] < 1) { true; } else { false; }");
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
         verify(provider, times(0)).scheduleNextIteration(loopTask, workflow);
-        assertEquals(loopTask.getStatus(), Task.Status.COMPLETED);
+        assertEquals(loopTask.getStatus(), TaskModel.Status.COMPLETED);
     }
 
     @Test
     public void testSingleFailedIteration() {
-        task1.setStatus(Task.Status.FAILED);
+        task1.setStatus(TaskModel.Status.FAILED);
         String reason = "Test";
         task1.setReasonForIncompletion(reason);
         doReturn(Arrays.asList(task1, task2, loopTask)).when(workflow).getTasks();
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
-        assertEquals(loopTask.getStatus(), Task.Status.FAILED);
+        assertEquals(loopTask.getStatus(), TaskModel.Status.FAILED);
         assertNotEquals(reason, loopTask.getReasonForIncompletion());
     }
 
     @Test
     public void testInProgress() {
-        loopTask.setStatus(Task.Status.IN_PROGRESS);
-        task1.setStatus(Task.Status.IN_PROGRESS);
+        loopTask.setStatus(TaskModel.Status.IN_PROGRESS);
+        task1.setStatus(TaskModel.Status.IN_PROGRESS);
         doReturn(Arrays.asList(task1, task2, loopTask)).when(workflow).getTasks();
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertFalse(success);
-        assertSame(loopTask.getStatus(), Status.IN_PROGRESS);
+        assertSame(loopTask.getStatus(), TaskModel.Status.IN_PROGRESS);
     }
 
     @Test
     public void testSingleIteration() {
-        loopTask.setStatus(Task.Status.IN_PROGRESS);
+        loopTask.setStatus(TaskModel.Status.IN_PROGRESS);
         doReturn(Arrays.asList(task1, task2)).when(workflow).getTasks();
-        loopWorkflowTask.setLoopCondition("if ($.loopTask['iteration'] > 1) { false; } else { true; }");
+        loopWorkflowTask.setLoopCondition(
+                "if ($.loopTask['iteration'] > 1) { false; } else { true; }");
         doNothing().when(provider).scheduleNextIteration(loopTask, workflow);
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
         assertEquals(loopTask.getIteration(), 2);
         verify(provider, times(1)).scheduleNextIteration(loopTask, workflow);
-        assertSame(loopTask.getStatus(), Status.IN_PROGRESS);
+        assertSame(loopTask.getStatus(), TaskModel.Status.IN_PROGRESS);
     }
 
     @Test
     public void testLoopOverTaskOutputInCondition() {
-        loopTask.setStatus(Task.Status.IN_PROGRESS);
+        loopTask.setStatus(TaskModel.Status.IN_PROGRESS);
         Map<String, Object> output = new HashMap<>();
         output.put("value", 1);
         task1.setOutputData(output);
@@ -189,7 +210,7 @@ public class TestDoWhile {
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
         verify(provider, times(0)).scheduleNextIteration(loopTask, workflow);
-        assertSame(loopTask.getStatus(), Status.COMPLETED);
+        assertSame(loopTask.getStatus(), TaskModel.Status.COMPLETED);
     }
 
     @Test
@@ -197,25 +218,30 @@ public class TestDoWhile {
         Map<String, Object> output = new HashMap<>();
         output.put("value", 1);
         loopTask.setInputData(output);
-        loopTask.setStatus(Task.Status.IN_PROGRESS);
+        loopTask.setStatus(TaskModel.Status.IN_PROGRESS);
         loopWorkflowTask.setInputParameters(output);
-        doReturn(output).when(parametersUtils)
-            .getTaskInputV2(loopTask.getWorkflowTask().getInputParameters(), workflow, loopTask.getTaskId(),
-                loopTaskDef);
+        doReturn(output)
+                .when(parametersUtils)
+                .getTaskInputV2(
+                        loopTask.getWorkflowTask().getInputParameters(),
+                        workflow,
+                        loopTask.getTaskId(),
+                        loopTaskDef);
         doReturn(Arrays.asList(task1, task2)).when(workflow).getTasks();
         loopWorkflowTask.setLoopCondition("if ($.value == 1) { false; } else { true; }");
         doNothing().when(provider).scheduleNextIteration(loopTask, workflow);
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
         verify(provider, times(0)).scheduleNextIteration(loopTask, workflow);
-        assertSame(loopTask.getStatus(), Status.COMPLETED);
+        assertSame(loopTask.getStatus(), TaskModel.Status.COMPLETED);
     }
 
     @Test
     public void testSecondIteration() {
-        loopTask.setStatus(Task.Status.IN_PROGRESS);
+        loopTask.setStatus(TaskModel.Status.IN_PROGRESS);
         doReturn(Arrays.asList(task1, task2)).when(workflow).getTasks();
-        loopWorkflowTask.setLoopCondition("if ($.loopTask['iteration'] > 1) { false; } else { true; }");
+        loopWorkflowTask.setLoopCondition(
+                "if ($.loopTask['iteration'] > 1) { false; } else { true; }");
         doNothing().when(provider).scheduleNextIteration(loopTask, workflow);
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
@@ -225,7 +251,7 @@ public class TestDoWhile {
         success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
         verify(provider, times(1)).scheduleNextIteration(loopTask, workflow);
-        assertEquals(loopTask.getStatus(), Task.Status.COMPLETED);
+        assertEquals(loopTask.getStatus(), TaskModel.Status.COMPLETED);
     }
 
     @Test
@@ -235,6 +261,6 @@ public class TestDoWhile {
         doNothing().when(provider).scheduleNextIteration(loopTask, workflow);
         boolean success = doWhile.execute(workflow, loopTask, provider);
         assertTrue(success);
-        assertSame(loopTask.getStatus(), Status.FAILED_WITH_TERMINAL_ERROR);
+        assertSame(loopTask.getStatus(), TaskModel.Status.FAILED_WITH_TERMINAL_ERROR);
     }
 }

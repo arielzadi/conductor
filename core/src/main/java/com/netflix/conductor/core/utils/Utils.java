@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,10 +12,6 @@
  */
 package com.netflix.conductor.core.utils;
 
-import com.google.common.base.Preconditions;
-import com.netflix.conductor.core.exception.ApplicationException;
-import org.apache.commons.lang3.StringUtils;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -24,7 +20,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.netflix.conductor.core.exception.ApplicationException;
+
+import com.google.common.base.Preconditions;
+
 public class Utils {
+
+    public static final String DECIDER_QUEUE = "_deciderQueue";
 
     /**
      * ID of the server. Can be host name, IP address or any other meaningful identifier
@@ -56,7 +60,7 @@ public class Utils {
     /**
      * Ensures the truth of an condition involving one or more parameters to the calling method.
      *
-     * @param condition    a boolean expression
+     * @param condition a boolean expression
      * @param errorMessage The exception message use if the input condition is not valid
      * @throws ApplicationException if input condition is not valid
      */
@@ -69,7 +73,7 @@ public class Utils {
     /**
      * This method checks if the collection is null or is empty.
      *
-     * @param collection   input of type {@link Collection}
+     * @param collection input of type {@link Collection}
      * @param errorMessage The exception message use if the collection is empty or null
      * @throws ApplicationException if input Collection is not valid
      */
@@ -82,7 +86,7 @@ public class Utils {
     /**
      * This method checks if the input map is valid or not.
      *
-     * @param map          input of type {@link Map}
+     * @param map input of type {@link Map}
      * @param errorMessage The exception message use if the map is empty or null
      * @throws ApplicationException if input map is not valid
      */
@@ -95,7 +99,7 @@ public class Utils {
     /**
      * This method checks it the input string is null or empty.
      *
-     * @param input        input of type {@link String}
+     * @param input input of type {@link String}
      * @param errorMessage The exception message use if the string is empty or null
      * @throws ApplicationException if input string is not valid
      */
@@ -110,7 +114,7 @@ public class Utils {
     /**
      * This method checks if the object is null or empty.
      *
-     * @param object       input of type {@link Object}
+     * @param object input of type {@link Object}
      * @param errorMessage The exception message use if the object is empty or null
      * @throws ApplicationException if input object is not valid
      */

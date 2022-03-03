@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -18,11 +18,7 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-/**
- * Mark service for custom audit implementation
- */
+/** Mark service for custom audit implementation */
 @Target({TYPE})
 @Retention(RUNTIME)
-public @interface Audit {
-
-}
+public @interface Audit {}

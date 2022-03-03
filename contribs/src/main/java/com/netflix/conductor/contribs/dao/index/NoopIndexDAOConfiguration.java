@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,10 +12,11 @@
  */
 package com.netflix.conductor.contribs.dao.index;
 
-import com.netflix.conductor.dao.IndexDAO;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.netflix.conductor.dao.IndexDAO;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "conductor.indexing.enabled", havingValue = "false")

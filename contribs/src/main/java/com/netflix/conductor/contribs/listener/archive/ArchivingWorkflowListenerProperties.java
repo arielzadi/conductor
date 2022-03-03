@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,6 +14,7 @@ package com.netflix.conductor.contribs.listener.archive;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.DurationUnit;
@@ -30,14 +31,13 @@ public class ArchivingWorkflowListenerProperties {
     }
 
     /**
-     * The time to live in seconds for workflow archiving module. Currently, only RedisExecutionDAO supports this
+     * The time to live in seconds for workflow archiving module. Currently, only RedisExecutionDAO
+     * supports this
      */
     @DurationUnit(ChronoUnit.SECONDS)
     private Duration ttlDuration = Duration.ZERO;
 
-    /**
-     * The number of threads to process the delay queue in workflow archival
-     */
+    /** The number of threads to process the delay queue in workflow archival */
     private int delayQueueWorkerThreadCount = 5;
 
     public Duration getTtlDuration() {
@@ -56,11 +56,12 @@ public class ArchivingWorkflowListenerProperties {
         this.delayQueueWorkerThreadCount = delayQueueWorkerThreadCount;
     }
 
-    /**
-     * The time to delay the archival of workflow
-     */
+    /** The time to delay the archival of workflow */
     public int getWorkflowArchivalDelay() {
-        return environment.getProperty("conductor.workflow-status-listener.archival.delaySeconds", Integer.class,
-            environment.getProperty("conductor.app.asyncUpdateDelaySeconds", Integer.class, 60));
+        return environment.getProperty(
+                "conductor.workflow-status-listener.archival.delaySeconds",
+                Integer.class,
+                environment.getProperty(
+                        "conductor.app.asyncUpdateDelaySeconds", Integer.class, 60));
     }
 }

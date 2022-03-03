@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,8 +12,9 @@
  */
 package com.netflix.conductor.core.events;
 
-import com.netflix.conductor.core.events.queue.ObservableQueue;
 import org.springframework.lang.NonNull;
+
+import com.netflix.conductor.core.events.queue.ObservableQueue;
 
 public interface EventQueueProvider {
 
@@ -24,7 +25,8 @@ public interface EventQueueProvider {
      *
      * @param queueURI The URI of the queue.
      * @return The {@link ObservableQueue} implementation for the <code>queueURI</code>.
-     * @throws IllegalArgumentException thrown when an {@link ObservableQueue} can not be created for the <code>queueURI</code>.
+     * @throws IllegalArgumentException thrown when an {@link ObservableQueue} can not be created
+     *     for the <code>queueURI</code>.
      */
     @NonNull
     ObservableQueue getQueue(String queueURI) throws IllegalArgumentException;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,13 +12,14 @@
  */
 package com.netflix.conductor.redis.dynoqueue;
 
-import com.google.common.collect.Lists;
+import java.util.List;
+
 import com.netflix.conductor.redis.config.RedisProperties;
 import com.netflix.dyno.connectionpool.Host;
 import com.netflix.dyno.connectionpool.HostBuilder;
 import com.netflix.dyno.connectionpool.HostSupplier;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
 public class LocalhostHostSupplier implements HostSupplier {
 
@@ -30,12 +31,13 @@ public class LocalhostHostSupplier implements HostSupplier {
 
     @Override
     public List<Host> getHosts() {
-        Host dynoHost = new HostBuilder()
-                .setHostname("localhost")
-                .setIpAddress("0")
-                .setRack(properties.getAvailabilityZone())
-                .setStatus(Host.Status.Up)
-                .createHost();
+        Host dynoHost =
+                new HostBuilder()
+                        .setHostname("localhost")
+                        .setIpAddress("0")
+                        .setRack(properties.getAvailabilityZone())
+                        .setStatus(Host.Status.Up)
+                        .createHost();
         return Lists.newArrayList(dynoHost);
     }
 }

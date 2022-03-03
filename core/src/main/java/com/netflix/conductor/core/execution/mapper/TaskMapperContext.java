@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,20 +12,18 @@
  */
 package com.netflix.conductor.core.execution.mapper;
 
+import java.util.Map;
+
 import com.netflix.conductor.common.metadata.tasks.TaskDef;
 import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
-import com.netflix.conductor.common.run.Workflow;
 import com.netflix.conductor.core.execution.DeciderService;
+import com.netflix.conductor.model.WorkflowModel;
 
-import java.util.Map;
-
-/**
- * Business Object class used for interaction between the DeciderService and Different Mappers
- */
+/** Business Object class used for interaction between the DeciderService and Different Mappers */
 public class TaskMapperContext {
 
-    private final Workflow workflowInstance;
+    private final WorkflowModel workflowInstance;
     private final TaskDef taskDefinition;
     private final WorkflowTask taskToSchedule;
     private final Map<String, Object> taskInput;
@@ -67,7 +65,7 @@ public class TaskMapperContext {
         return workflowInstance.getWorkflowDefinition();
     }
 
-    public Workflow getWorkflowInstance() {
+    public WorkflowModel getWorkflowInstance() {
         return workflowInstance;
     }
 
@@ -99,18 +97,26 @@ public class TaskMapperContext {
         return deciderService;
     }
 
-
     @Override
     public String toString() {
-        return "TaskMapperContext{" +
-            "workflowDefinition=" + getWorkflowDefinition() +
-            ", workflowInstance=" + workflowInstance +
-            ", taskToSchedule=" + taskToSchedule +
-            ", taskInput=" + taskInput +
-            ", retryCount=" + retryCount +
-            ", retryTaskId='" + retryTaskId + '\'' +
-            ", taskId='" + taskId + '\'' +
-            '}';
+        return "TaskMapperContext{"
+                + "workflowDefinition="
+                + getWorkflowDefinition()
+                + ", workflowInstance="
+                + workflowInstance
+                + ", taskToSchedule="
+                + taskToSchedule
+                + ", taskInput="
+                + taskInput
+                + ", retryCount="
+                + retryCount
+                + ", retryTaskId='"
+                + retryTaskId
+                + '\''
+                + ", taskId='"
+                + taskId
+                + '\''
+                + '}';
     }
 
     @Override
@@ -139,8 +145,9 @@ public class TaskMapperContext {
         if (!getTaskInput().equals(that.getTaskInput())) {
             return false;
         }
-        if (getRetryTaskId() != null ? !getRetryTaskId().equals(that.getRetryTaskId())
-            : that.getRetryTaskId() != null) {
+        if (getRetryTaskId() != null
+                ? !getRetryTaskId().equals(that.getRetryTaskId())
+                : that.getRetryTaskId() != null) {
             return false;
         }
         return getTaskId().equals(that.getTaskId());
@@ -158,14 +165,11 @@ public class TaskMapperContext {
         return result;
     }
 
-
-    /**
-     * {@code TaskMapperContext} builder static inner class.
-     */
+    /** {@code TaskMapperContext} builder static inner class. */
     public static final class Builder {
 
         private WorkflowDef workflowDefinition;
-        private Workflow workflowInstance;
+        private WorkflowModel workflowInstance;
         private TaskDef taskDefinition;
         private WorkflowTask taskToSchedule;
         private Map<String, Object> taskInput;
@@ -174,12 +178,11 @@ public class TaskMapperContext {
         private String taskId;
         private DeciderService deciderService;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         /**
-         * Sets the {@code workflowDefinition} and returns a reference to this Builder so that the methods can be
-         * chained together.
+         * Sets the {@code workflowDefinition} and returns a reference to this Builder so that the
+         * methods can be chained together.
          *
          * @param val the {@code workflowDefinition} to set
          * @return a reference to this Builder
@@ -190,20 +193,20 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code workflowInstance} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code workflowInstance} and returns a reference to this Builder so that the
+         * methods can be chained together.
          *
          * @param val the {@code workflowInstance} to set
          * @return a reference to this Builder
          */
-        public Builder withWorkflowInstance(Workflow val) {
+        public Builder withWorkflowInstance(WorkflowModel val) {
             workflowInstance = val;
             return this;
         }
 
         /**
-         * Sets the {@code taskDefinition} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code taskDefinition} and returns a reference to this Builder so that the
+         * methods can be chained together.
          *
          * @param val the {@code taskDefinition} to set
          * @return a reference to this Builder
@@ -214,8 +217,8 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code taskToSchedule} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code taskToSchedule} and returns a reference to this Builder so that the
+         * methods can be chained together.
          *
          * @param val the {@code taskToSchedule} to set
          * @return a reference to this Builder
@@ -226,8 +229,8 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code taskInput} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code taskInput} and returns a reference to this Builder so that the methods
+         * can be chained together.
          *
          * @param val the {@code taskInput} to set
          * @return a reference to this Builder
@@ -238,8 +241,8 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code retryCount} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code retryCount} and returns a reference to this Builder so that the methods
+         * can be chained together.
          *
          * @param val the {@code retryCount} to set
          * @return a reference to this Builder
@@ -250,8 +253,8 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code retryTaskId} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code retryTaskId} and returns a reference to this Builder so that the methods
+         * can be chained together.
          *
          * @param val the {@code retryTaskId} to set
          * @return a reference to this Builder
@@ -262,7 +265,8 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code taskId} and returns a reference to this Builder so that the methods can be chained together.
+         * Sets the {@code taskId} and returns a reference to this Builder so that the methods can
+         * be chained together.
          *
          * @param val the {@code taskId} to set
          * @return a reference to this Builder
@@ -273,8 +277,8 @@ public class TaskMapperContext {
         }
 
         /**
-         * Sets the {@code deciderService} and returns a reference to this Builder so that the methods can be chained
-         * together.
+         * Sets the {@code deciderService} and returns a reference to this Builder so that the
+         * methods can be chained together.
          *
          * @param val the {@code deciderService} to set
          * @return a reference to this Builder
@@ -287,7 +291,8 @@ public class TaskMapperContext {
         /**
          * Returns a {@code TaskMapperContext} built from the parameters previously set.
          *
-         * @return a {@code TaskMapperContext} built with parameters of this {@code TaskMapperContext.Builder}
+         * @return a {@code TaskMapperContext} built with parameters of this {@code
+         *     TaskMapperContext.Builder}
          */
         public TaskMapperContext build() {
             return new TaskMapperContext(this);

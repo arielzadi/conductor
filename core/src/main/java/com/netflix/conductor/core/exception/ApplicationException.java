@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -18,11 +18,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@SuppressWarnings("serial")
 public class ApplicationException extends RuntimeException {
 
     public enum Code {
-
         INVALID_INPUT(400),
         INTERNAL_ERROR(500),
         NOT_FOUND(404),
@@ -79,7 +77,7 @@ public class ApplicationException extends RuntimeException {
         PrintStream ps = new PrintStream(baos);
         this.printStackTrace(ps);
         ps.flush();
-        return new String(baos.toByteArray());
+        return baos.toString();
     }
 
     public Map<String, Object> toMap() {

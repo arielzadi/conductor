@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,19 +12,20 @@
  */
 package com.netflix.conductor.core.execution.mapper;
 
-import com.netflix.conductor.common.metadata.tasks.Task;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import com.netflix.conductor.common.metadata.tasks.TaskDef;
 import com.netflix.conductor.common.metadata.tasks.TaskType;
 import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
-import com.netflix.conductor.common.run.Workflow;
 import com.netflix.conductor.core.utils.IDGenerator;
 import com.netflix.conductor.core.utils.ParametersUtils;
 import com.netflix.conductor.dao.MetadataDAO;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
+import com.netflix.conductor.model.TaskModel;
+import com.netflix.conductor.model.WorkflowModel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -48,25 +49,28 @@ public class LambdaTaskMapperTest {
         taskToSchedule.setName("lambda_task");
         taskToSchedule.setType(TaskType.LAMBDA.name());
         taskToSchedule.setTaskDefinition(new TaskDef("lambda_task"));
-        taskToSchedule
-            .setScriptExpression("if ($.input.a==1){return {testValue: true}} else{return {testValue: false} }");
+        taskToSchedule.setScriptExpression(
+                "if ($.input.a==1){return {testValue: true}} else{return {testValue: false} }");
 
         String taskId = IDGenerator.generate();
 
         WorkflowDef workflowDef = new WorkflowDef();
-        Workflow workflow = new Workflow();
+        WorkflowModel workflow = new WorkflowModel();
         workflow.setWorkflowDefinition(workflowDef);
 
-        TaskMapperContext taskMapperContext = TaskMapperContext.newBuilder()
-            .withWorkflowDefinition(workflowDef)
-            .withWorkflowInstance(workflow)
-            .withTaskDefinition(new TaskDef())
-            .withTaskToSchedule(taskToSchedule)
-            .withRetryCount(0)
-            .withTaskId(taskId)
-            .build();
+        TaskMapperContext taskMapperContext =
+                TaskMapperContext.newBuilder()
+                        .withWorkflowDefinition(workflowDef)
+                        .withWorkflowInstance(workflow)
+                        .withTaskDefinition(new TaskDef())
+                        .withTaskToSchedule(taskToSchedule)
+                        .withRetryCount(0)
+                        .withTaskId(taskId)
+                        .build();
 
-        List<Task> mappedTasks = new LambdaTaskMapper(parametersUtils, metadataDAO).getMappedTasks(taskMapperContext);
+        List<TaskModel> mappedTasks =
+                new LambdaTaskMapper(parametersUtils, metadataDAO)
+                        .getMappedTasks(taskMapperContext);
 
         assertEquals(1, mappedTasks.size());
         assertNotNull(mappedTasks);
@@ -78,25 +82,28 @@ public class LambdaTaskMapperTest {
 
         WorkflowTask taskToSchedule = new WorkflowTask();
         taskToSchedule.setType(TaskType.LAMBDA.name());
-        taskToSchedule
-            .setScriptExpression("if ($.input.a==1){return {testValue: true}} else{return {testValue: false} }");
+        taskToSchedule.setScriptExpression(
+                "if ($.input.a==1){return {testValue: true}} else{return {testValue: false} }");
 
         String taskId = IDGenerator.generate();
 
         WorkflowDef workflowDef = new WorkflowDef();
-        Workflow workflow = new Workflow();
+        WorkflowModel workflow = new WorkflowModel();
         workflow.setWorkflowDefinition(workflowDef);
 
-        TaskMapperContext taskMapperContext = TaskMapperContext.newBuilder()
-            .withWorkflowDefinition(workflowDef)
-            .withWorkflowInstance(workflow)
-            .withTaskDefinition(null)
-            .withTaskToSchedule(taskToSchedule)
-            .withRetryCount(0)
-            .withTaskId(taskId)
-            .build();
+        TaskMapperContext taskMapperContext =
+                TaskMapperContext.newBuilder()
+                        .withWorkflowDefinition(workflowDef)
+                        .withWorkflowInstance(workflow)
+                        .withTaskDefinition(null)
+                        .withTaskToSchedule(taskToSchedule)
+                        .withRetryCount(0)
+                        .withTaskId(taskId)
+                        .build();
 
-        List<Task> mappedTasks = new LambdaTaskMapper(parametersUtils, metadataDAO).getMappedTasks(taskMapperContext);
+        List<TaskModel> mappedTasks =
+                new LambdaTaskMapper(parametersUtils, metadataDAO)
+                        .getMappedTasks(taskMapperContext);
 
         assertEquals(1, mappedTasks.size());
         assertNotNull(mappedTasks);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,23 +12,18 @@
  */
 package com.netflix.conductor.postgres.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.convert.DurationUnit;
-
-import java.sql.Connection;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.convert.DurationUnit;
 
 @ConfigurationProperties("conductor.postgres")
 public class PostgresProperties {
 
-
-    /**
-     * The time in seconds after which the in-memory task definitions cache will be refreshed
-     */
+    /** The time in seconds after which the in-memory task definitions cache will be refreshed */
     @DurationUnit(ChronoUnit.SECONDS)
     private Duration taskDefCacheRefreshInterval = Duration.ofSeconds(60);
-
 
     public Duration getTaskDefCacheRefreshInterval() {
         return taskDefCacheRefreshInterval;

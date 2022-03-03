@@ -12,32 +12,8 @@
  */
 package com.netflix.conductor.contribs.queue.amqp;
 
-import com.google.common.collect.Maps;
-import com.netflix.conductor.contribs.queue.amqp.config.AMQPEventQueueProperties;
-import com.netflix.conductor.contribs.queue.amqp.util.AMQPConstants;
-import com.netflix.conductor.contribs.queue.amqp.util.AMQPSettings;
-import com.netflix.conductor.contribs.queue.amqp.util.ConnectionType;
-import com.netflix.conductor.core.LifecycleAwareComponent;
-import com.netflix.conductor.core.events.queue.Message;
-import com.netflix.conductor.core.events.queue.ObservableQueue;
-import com.netflix.conductor.metrics.Monitors;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Address;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Consumer;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.GetResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,29 +21,57 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
-/**
- * @author Ritu Parathody
- */
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.netflix.conductor.contribs.queue.amqp.config.AMQPEventQueueProperties;
+import com.netflix.conductor.contribs.queue.amqp.config.AMQPRetryPattern;
+import com.netflix.conductor.contribs.queue.amqp.util.AMQPConstants;
+import com.netflix.conductor.contribs.queue.amqp.util.AMQPSettings;
+import com.netflix.conductor.contribs.queue.amqp.util.ConnectionType;
+import com.netflix.conductor.core.events.queue.Message;
+import com.netflix.conductor.core.events.queue.ObservableQueue;
+import com.netflix.conductor.metrics.Monitors;
+
+import com.google.common.collect.Maps;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Address;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.GetResponse;
+import rx.Observable;
+import rx.Subscriber;
+
+/** @author Ritu Parathody */
 public class AMQPObservableQueue implements ObservableQueue {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AMQPObservableQueue.class);
 
     private final AMQPSettings settings;
+    private final AMQPRetryPattern retrySettings;
+    private final String QUEUE_TYPE = "x-queue-type";
     private final int batchSize;
     private final boolean useExchange;
     private int pollTimeInMS;
     private AMQPConnection amqpConnection;
-    
+
     protected LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
     private volatile boolean running;
 
-    public AMQPObservableQueue(ConnectionFactory factory, Address[] addresses, boolean useExchange,
-        AMQPSettings settings, int batchSize, int pollTimeInMS) {
+    public AMQPObservableQueue(
+            ConnectionFactory factory,
+            Address[] addresses,
+            boolean useExchange,
+            AMQPSettings settings,
+            AMQPRetryPattern retrySettings,
+            int batchSize,
+            int pollTimeInMS) {
         if (factory == null) {
             throw new IllegalArgumentException("Connection factory is undefined");
         }
@@ -86,41 +90,69 @@ public class AMQPObservableQueue implements ObservableQueue {
         this.useExchange = useExchange;
         this.settings = settings;
         this.batchSize = batchSize;
-        this.amqpConnection = AMQPConnection.getInstance(factory, addresses);
+        this.amqpConnection = AMQPConnection.getInstance(factory, addresses, retrySettings);
+        this.retrySettings = retrySettings;
         this.setPollTimeInMS(pollTimeInMS);
-        		
     }
+
     @Override
     public Observable<Message> observe() {
-        receiveMessages();
-        Observable.OnSubscribe<Message> onSubscribe = subscriber -> {
-            Observable<Long> interval = Observable.interval(pollTimeInMS, TimeUnit.MILLISECONDS);
-            interval.flatMap((Long x) -> {
-                if (!isRunning()) {
-                    LOGGER.debug("Component stopped, skip listening for messages from RabbitMQ");
-                    return Observable.from(Collections.emptyList());
-                } else {
-                    List<Message> available = new LinkedList<>();
-                    messages.drainTo(available);
+        Observable.OnSubscribe<Message> onSubscribe = null;
+        // This will enabled the messages to be processed one after the other as per the
+        // observable next behavior.
+        if (settings.isSequentialProcessing()) {
+            LOGGER.info("Subscribing for the message processing on schedule basis");
+            receiveMessages();
+            onSubscribe =
+                    subscriber -> {
+                        Observable<Long> interval =
+                                Observable.interval(pollTimeInMS, TimeUnit.MILLISECONDS);
+                        interval.flatMap(
+                                        (Long x) -> {
+                                            if (!isRunning()) {
+                                                LOGGER.debug(
+                                                        "Component stopped, skip listening for messages from RabbitMQ");
+                                                return Observable.from(Collections.emptyList());
+                                            } else {
+                                                List<Message> available = new LinkedList<>();
+                                                messages.drainTo(available);
 
-                    if (!available.isEmpty()) {
-                        AtomicInteger count = new AtomicInteger(0);
-                        StringBuilder buffer = new StringBuilder();
-                        available.forEach(msg -> {
-                            buffer.append(msg.getId()).append("=").append(msg.getPayload());
-                            count.incrementAndGet();
+                                                if (!available.isEmpty()) {
+                                                    AtomicInteger count = new AtomicInteger(0);
+                                                    StringBuilder buffer = new StringBuilder();
+                                                    available.forEach(
+                                                            msg -> {
+                                                                buffer.append(msg.getId())
+                                                                        .append("=")
+                                                                        .append(msg.getPayload());
+                                                                count.incrementAndGet();
 
-                            if (count.get() < available.size()) {
-                                buffer.append(",");
-                            }
-                        });
-                        LOGGER.info(String.format("Batch from %s to conductor is %s", settings.getQueueOrExchangeName(),
-                            buffer.toString()));
-                    }
-                    return Observable.from(available);
-                }
-            }).subscribe(subscriber::onNext, subscriber::onError);
-        };
+                                                                if (count.get()
+                                                                        < available.size()) {
+                                                                    buffer.append(",");
+                                                                }
+                                                            });
+                                                    LOGGER.info(
+                                                            String.format(
+                                                                    "Batch from %s to conductor is %s",
+                                                                    settings
+                                                                            .getQueueOrExchangeName(),
+                                                                    buffer.toString()));
+                                                }
+                                                return Observable.from(available);
+                                            }
+                                        })
+                                .subscribe(subscriber::onNext, subscriber::onError);
+                    };
+            LOGGER.info("Subscribed for the message processing on schedule basis");
+        } else {
+            onSubscribe =
+                    subscriber -> {
+                        LOGGER.info("Subscribing for the event based AMQP message processing");
+                        receiveMessages(subscriber);
+                        LOGGER.info("Subscribed for the event based AMQP message processing");
+                    };
+        }
         return Observable.create(onSubscribe);
     }
 
@@ -155,36 +187,105 @@ public class AMQPObservableQueue implements ObservableQueue {
     public List<String> ack(List<Message> messages) {
         final List<String> processedDeliveryTags = new ArrayList<>();
         for (final Message message : messages) {
-            try {
-                LOGGER.info("ACK message with delivery tag {}", message.getReceipt());
-                amqpConnection.getOrCreateChannel(ConnectionType.SUBSCRIBER,getSettings().getQueueOrExchangeName()).basicAck(Long.parseLong(message.getReceipt()), false);
-                // Message ACKed
-                processedDeliveryTags.add(message.getReceipt());
-            } catch (final IOException e) {
-                LOGGER.error("Cannot ACK message with delivery tag {}", message.getReceipt(), e);
+            int retryIndex = 1;
+            while (true) {
+                try {
+                    LOGGER.info("ACK message with delivery tag {}", message.getReceipt());
+                    Channel chn =
+                            amqpConnection.getOrCreateChannel(
+                                    ConnectionType.SUBSCRIBER,
+                                    getSettings().getQueueOrExchangeName());
+                    chn.basicAck(Long.parseLong(message.getReceipt()), false);
+                    processedDeliveryTags.add(message.getReceipt());
+                    LOGGER.info("Ack'ed the message with delivery tag {}", message.getReceipt());
+                    break;
+                } catch (final Exception e) {
+                    AMQPRetryPattern retry = retrySettings;
+                    if (retry == null) {
+                        LOGGER.error(
+                                "Cannot ACK message with delivery tag {}", message.getReceipt(), e);
+                    }
+                    try {
+                        retry.continueOrPropogate(e, retryIndex);
+                    } catch (Exception ex) {
+                        LOGGER.error(
+                                "Retries completed. Cannot ACK message with delivery tag {}",
+                                message.getReceipt(),
+                                e);
+                    }
+                    retryIndex++;
+                }
             }
         }
         return processedDeliveryTags;
     }
 
-    private static AMQP.BasicProperties buildBasicProperties(final Message message, final AMQPSettings settings) {
+    private static AMQP.BasicProperties buildBasicProperties(
+            final Message message, final AMQPSettings settings) {
         return new AMQP.BasicProperties.Builder()
-            .messageId(StringUtils.isEmpty(message.getId()) ? UUID.randomUUID().toString() : message.getId())
-            .correlationId(
-                StringUtils.isEmpty(message.getReceipt()) ? UUID.randomUUID().toString() : message.getReceipt())
-            .contentType(settings.getContentType()).contentEncoding(settings.getContentEncoding())
-            .deliveryMode(settings.getDeliveryMode()).build();
+                .messageId(
+                        StringUtils.isEmpty(message.getId())
+                                ? UUID.randomUUID().toString()
+                                : message.getId())
+                .correlationId(
+                        StringUtils.isEmpty(message.getReceipt())
+                                ? UUID.randomUUID().toString()
+                                : message.getReceipt())
+                .contentType(settings.getContentType())
+                .contentEncoding(settings.getContentEncoding())
+                .deliveryMode(settings.getDeliveryMode())
+                .build();
     }
 
     private void publishMessage(Message message, String exchange, String routingKey) {
-        try {
-            final String payload = message.getPayload();
-            amqpConnection.getOrCreateChannel(ConnectionType.PUBLISHER,getSettings().getQueueOrExchangeName()).basicPublish(exchange, routingKey, buildBasicProperties(message, settings),
-                payload.getBytes(settings.getContentEncoding()));
-            LOGGER.info(String.format("Published message to %s: %s", exchange, payload));
-        } catch (Exception ex) {
-            LOGGER.error("Failed to publish message {} to {}", message.getPayload(), exchange, ex);
-            throw new RuntimeException(ex);
+        Channel chn = null;
+        int retryIndex = 1;
+        while (true) {
+            try {
+                final String payload = message.getPayload();
+                chn =
+                        amqpConnection.getOrCreateChannel(
+                                ConnectionType.PUBLISHER, getSettings().getQueueOrExchangeName());
+                chn.basicPublish(
+                        exchange,
+                        routingKey,
+                        buildBasicProperties(message, settings),
+                        payload.getBytes(settings.getContentEncoding()));
+                LOGGER.info(String.format("Published message to %s: %s", exchange, payload));
+                break;
+            } catch (Exception ex) {
+                AMQPRetryPattern retry = retrySettings;
+                if (retry == null) {
+                    LOGGER.error(
+                            "Failed to publish message {} to {}",
+                            message.getPayload(),
+                            exchange,
+                            ex);
+                    throw new RuntimeException(ex);
+                }
+                try {
+                    retry.continueOrPropogate(ex, retryIndex);
+                } catch (Exception e) {
+                    LOGGER.error(
+                            "Retries completed. Failed to publish message {} to {}",
+                            message.getPayload(),
+                            exchange,
+                            ex);
+                    throw new RuntimeException(ex);
+                }
+                retryIndex++;
+            } finally {
+                if (chn != null) {
+                    try {
+                        amqpConnection.returnChannel(ConnectionType.PUBLISHER, chn);
+                    } catch (Exception e) {
+                        LOGGER.error(
+                                "Failed to return the channel of {}. {}",
+                                ConnectionType.PUBLISHER,
+                                e);
+                    }
+                }
+            }
         }
     }
 
@@ -194,14 +295,25 @@ public class AMQPObservableQueue implements ObservableQueue {
             final String exchange, routingKey;
             if (useExchange) {
                 // Use exchange + routing key for publishing
-                getOrCreateExchange(ConnectionType.PUBLISHER,settings.getQueueOrExchangeName(), settings.getExchangeType(), settings.isDurable(),
-                    settings.autoDelete(), settings.getArguments());
+                getOrCreateExchange(
+                        ConnectionType.PUBLISHER,
+                        settings.getQueueOrExchangeName(),
+                        settings.getExchangeType(),
+                        settings.isDurable(),
+                        settings.autoDelete(),
+                        settings.getArguments());
                 exchange = settings.getQueueOrExchangeName();
                 routingKey = settings.getRoutingKey();
             } else {
                 // Use queue for publishing
-                final AMQP.Queue.DeclareOk declareOk = getOrCreateQueue(ConnectionType.PUBLISHER,settings.getQueueOrExchangeName(),
-                    settings.isDurable(), settings.isExclusive(), settings.autoDelete(), settings.getArguments());
+                final AMQP.Queue.DeclareOk declareOk =
+                        getOrCreateQueue(
+                                ConnectionType.PUBLISHER,
+                                settings.getQueueOrExchangeName(),
+                                settings.isDurable(),
+                                settings.isExclusive(),
+                                settings.autoDelete(),
+                                settings.getArguments());
                 exchange = StringUtils.EMPTY; // Empty exchange name for queue
                 routingKey = declareOk.getQueue(); // Routing name is the name of queue
             }
@@ -221,10 +333,23 @@ public class AMQPObservableQueue implements ObservableQueue {
 
     @Override
     public long size() {
+        Channel chn = null;
         try {
-            return amqpConnection.getOrCreateChannel(ConnectionType.SUBSCRIBER,getSettings().getQueueOrExchangeName()).messageCount(settings.getQueueOrExchangeName());
+            chn =
+                    amqpConnection.getOrCreateChannel(
+                            ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName());
+            return chn.messageCount(settings.getQueueOrExchangeName());
         } catch (final Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            if (chn != null) {
+                try {
+                    amqpConnection.returnChannel(ConnectionType.SUBSCRIBER, chn);
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -235,13 +360,19 @@ public class AMQPObservableQueue implements ObservableQueue {
 
     @Override
     public void start() {
-        LOGGER.info("Started listening to {}:{}", getClass().getSimpleName(), settings.getQueueOrExchangeName());
+        LOGGER.info(
+                "Started listening to {}:{}",
+                getClass().getSimpleName(),
+                settings.getQueueOrExchangeName());
         running = true;
     }
 
     @Override
     public void stop() {
-        LOGGER.info("Stopped listening to {}:{}", getClass().getSimpleName(), settings.getQueueOrExchangeName());
+        LOGGER.info(
+                "Stopped listening to {}:{}",
+                getClass().getSimpleName(),
+                settings.getQueueOrExchangeName());
         running = false;
     }
 
@@ -307,69 +438,122 @@ public class AMQPObservableQueue implements ObservableQueue {
             } else {
                 factory.setPort(port);
             }
-            // Get connection timeout from config
-            final int connectionTimeout = (int) properties.getConnectionTimeout().toMillis();
-            if (connectionTimeout <= 0) {
-                throw new IllegalArgumentException("Connection timeout must be greater than 0");
-            } else {
-                factory.setConnectionTimeout(connectionTimeout);
-            }
             final boolean useNio = properties.isUseNio();
             if (useNio) {
                 factory.useNio();
             }
+            factory.setConnectionTimeout(properties.getConnectionTimeoutInMilliSecs());
+            factory.setRequestedHeartbeat(properties.getRequestHeartbeatTimeoutInSecs());
+            factory.setNetworkRecoveryInterval(properties.getNetworkRecoveryIntervalInMilliSecs());
+            factory.setHandshakeTimeout(properties.getHandshakeTimeoutInMilliSecs());
             factory.setAutomaticRecoveryEnabled(true);
             factory.setTopologyRecoveryEnabled(true);
+            factory.setRequestedChannelMax(properties.getMaxChannelCount());
             return factory;
         }
 
         public AMQPObservableQueue build(final boolean useExchange, final String queueURI) {
             final AMQPSettings settings = new AMQPSettings(properties).fromURI(queueURI);
-            return new AMQPObservableQueue(factory, addresses, useExchange, settings, batchSize, pollTimeInMS);
+            final AMQPRetryPattern retrySettings =
+                    new AMQPRetryPattern(
+                            properties.getLimit(), properties.getDuration(), properties.getType());
+            return new AMQPObservableQueue(
+                    factory,
+                    addresses,
+                    useExchange,
+                    settings,
+                    retrySettings,
+                    batchSize,
+                    pollTimeInMS);
         }
     }
 
-    
-    private AMQP.Exchange.DeclareOk getOrCreateExchange(ConnectionType connectionType) throws IOException {
-        return getOrCreateExchange(connectionType, settings.getQueueOrExchangeName(), settings.getExchangeType(), settings.isDurable(),
-            settings.autoDelete(), settings.getArguments());
+    private AMQP.Exchange.DeclareOk getOrCreateExchange(ConnectionType connectionType)
+            throws Exception {
+        return getOrCreateExchange(
+                connectionType,
+                settings.getQueueOrExchangeName(),
+                settings.getExchangeType(),
+                settings.isDurable(),
+                settings.autoDelete(),
+                settings.getArguments());
     }
 
-    private AMQP.Exchange.DeclareOk getOrCreateExchange(ConnectionType connectionType, String name, final String type, final boolean isDurable,
-        final boolean autoDelete, final Map<String, Object> arguments) throws IOException {
+    private AMQP.Exchange.DeclareOk getOrCreateExchange(
+            ConnectionType connectionType,
+            String name,
+            final String type,
+            final boolean isDurable,
+            final boolean autoDelete,
+            final Map<String, Object> arguments)
+            throws Exception {
         if (StringUtils.isEmpty(name)) {
             throw new RuntimeException("Exchange name is undefined");
         }
         if (StringUtils.isEmpty(type)) {
             throw new RuntimeException("Exchange type is undefined");
         }
-
+        Channel chn = null;
         try {
-        	LOGGER.debug("Creating exchange {} of type {}", name, type);
-            return amqpConnection.getOrCreateChannel(connectionType,getSettings().getQueueOrExchangeName()).exchangeDeclare(name, type, isDurable, autoDelete, arguments);
-        } catch (final IOException e) {
+            LOGGER.debug("Creating exchange {} of type {}", name, type);
+            chn =
+                    amqpConnection.getOrCreateChannel(
+                            connectionType, getSettings().getQueueOrExchangeName());
+            return chn.exchangeDeclare(name, type, isDurable, autoDelete, arguments);
+        } catch (final Exception e) {
             LOGGER.warn("Failed to create exchange {} of type {}", name, type, e);
             throw e;
+        } finally {
+            if (chn != null) {
+                try {
+                    amqpConnection.returnChannel(connectionType, chn);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to return the channel of {}. {}", connectionType, e);
+                }
+            }
         }
     }
 
-    private AMQP.Queue.DeclareOk getOrCreateQueue(ConnectionType connectionType) throws IOException {
-        return getOrCreateQueue(connectionType, settings.getQueueOrExchangeName(), settings.isDurable(), settings.isExclusive(),
-            settings.autoDelete(), settings.getArguments());
+    private AMQP.Queue.DeclareOk getOrCreateQueue(ConnectionType connectionType) throws Exception {
+        return getOrCreateQueue(
+                connectionType,
+                settings.getQueueOrExchangeName(),
+                settings.isDurable(),
+                settings.isExclusive(),
+                settings.autoDelete(),
+                settings.getArguments());
     }
 
-    private AMQP.Queue.DeclareOk getOrCreateQueue(ConnectionType connectionType, final String name, final boolean isDurable, final boolean isExclusive,
-        final boolean autoDelete, final Map<String, Object> arguments) throws IOException {
+    private AMQP.Queue.DeclareOk getOrCreateQueue(
+            ConnectionType connectionType,
+            final String name,
+            final boolean isDurable,
+            final boolean isExclusive,
+            final boolean autoDelete,
+            final Map<String, Object> arguments)
+            throws Exception {
         if (StringUtils.isEmpty(name)) {
             throw new RuntimeException("Queue name is undefined");
         }
-
+        arguments.put(QUEUE_TYPE, settings.getQueueType());
+        Channel chn = null;
         try {
-        	LOGGER.debug("Creating queue {}",name);
-            return  amqpConnection.getOrCreateChannel(connectionType,getSettings().getQueueOrExchangeName()).queueDeclare(name, isDurable, isExclusive, autoDelete, arguments);
-        } catch (final IOException e) {
-             LOGGER.warn("Failed to create queue {}", name, e);
+            LOGGER.debug("Creating queue {}", name);
+            chn =
+                    amqpConnection.getOrCreateChannel(
+                            connectionType, getSettings().getQueueOrExchangeName());
+            return chn.queueDeclare(name, isDurable, isExclusive, autoDelete, arguments);
+        } catch (final Exception e) {
+            LOGGER.warn("Failed to create queue {}", name, e);
             throw e;
+        } finally {
+            if (chn != null) {
+                try {
+                    amqpConnection.returnChannel(connectionType, chn);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to return the channel of {}. {}", connectionType, e);
+                }
+            }
         }
     }
 
@@ -385,63 +569,171 @@ public class AMQPObservableQueue implements ObservableQueue {
     }
 
     private void receiveMessagesFromQueue(String queueName) throws Exception {
-        int nb = 0;
         LOGGER.debug("Accessing channel for queue {}", queueName);
-        
-        Consumer consumer = new DefaultConsumer(amqpConnection.getOrCreateChannel(ConnectionType.SUBSCRIBER,getSettings().getQueueOrExchangeName())) {
 
-            @Override
-            public void handleDelivery(final String consumerTag, final Envelope envelope,
-                final AMQP.BasicProperties properties, final byte[] body) throws IOException {
-                try {
-                    Message message = asMessage(settings,
-                        new GetResponse(envelope, properties, body, Integer.MAX_VALUE));
-                    if (message != null) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Got message with ID {} and receipt {}", message.getId(),
-                                message.getReceipt());
+        Consumer consumer =
+                new DefaultConsumer(
+                        amqpConnection.getOrCreateChannel(
+                                ConnectionType.SUBSCRIBER,
+                                getSettings().getQueueOrExchangeName())) {
+
+                    @Override
+                    public void handleDelivery(
+                            final String consumerTag,
+                            final Envelope envelope,
+                            final AMQP.BasicProperties properties,
+                            final byte[] body)
+                            throws IOException {
+                        try {
+                            Message message =
+                                    asMessage(
+                                            settings,
+                                            new GetResponse(
+                                                    envelope, properties, body, Integer.MAX_VALUE));
+                            if (message != null) {
+                                if (LOGGER.isDebugEnabled()) {
+                                    LOGGER.debug(
+                                            "Got message with ID {} and receipt {}",
+                                            message.getId(),
+                                            message.getReceipt());
+                                }
+                                messages.add(message);
+                                LOGGER.info("receiveMessagesFromQueue- End method {}", messages);
+                            }
+                        } catch (InterruptedException e) {
+                            LOGGER.error(
+                                    "Issue in handling the mesages for the subscriber with consumer tag {}. {}",
+                                    consumerTag,
+                                    e);
+                            Thread.currentThread().interrupt();
+                        } catch (Exception e) {
+                            LOGGER.error(
+                                    "Issue in handling the mesages for the subscriber with consumer tag {}. {}",
+                                    consumerTag,
+                                    e);
                         }
-                        messages.add(message);
-                        LOGGER.info("receiveMessagesFromQueue- End method {}", messages);
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
-                    //
-                }
-            }
-            
-            
-            public void handleCancel(String consumerTag) throws IOException{
-            	LOGGER.error("Recieved a consumer cancel notification for subscriber. Will monitor and make changes");										
-			}
-        };
 
-        amqpConnection.getOrCreateChannel(ConnectionType.SUBSCRIBER,getSettings().getQueueOrExchangeName()).basicConsume(queueName, false, consumer);
+                    public void handleCancel(String consumerTag) throws IOException {
+                        LOGGER.error(
+                                "Recieved a consumer cancel notification for subscriber {}",
+                                consumerTag);
+                    }
+                };
+
+        amqpConnection
+                .getOrCreateChannel(
+                        ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName())
+                .basicConsume(queueName, false, consumer);
         Monitors.recordEventQueueMessagesProcessed(getType(), queueName, messages.size());
+    }
+
+    private void receiveMessagesFromQueue(String queueName, Subscriber<? super Message> subscriber)
+            throws Exception {
+        LOGGER.debug("Accessing channel for queue {}", queueName);
+
+        Consumer consumer =
+                new DefaultConsumer(
+                        amqpConnection.getOrCreateChannel(
+                                ConnectionType.SUBSCRIBER,
+                                getSettings().getQueueOrExchangeName())) {
+
+                    @Override
+                    public void handleDelivery(
+                            final String consumerTag,
+                            final Envelope envelope,
+                            final AMQP.BasicProperties properties,
+                            final byte[] body)
+                            throws IOException {
+                        try {
+                            Message message =
+                                    asMessage(
+                                            settings,
+                                            new GetResponse(
+                                                    envelope, properties, body, Integer.MAX_VALUE));
+                            if (message == null) {
+                                return;
+                            }
+                            LOGGER.info(
+                                    "Got message with ID {} and receipt {}",
+                                    message.getId(),
+                                    message.getReceipt());
+                            LOGGER.debug("Message content {}", message);
+                            // Not using thread-pool here as the number of concurrent threads are
+                            // controlled
+                            // by the number of messages delivery using pre-fetch count in RabbitMQ
+                            Thread newThread =
+                                    new Thread(
+                                            () -> {
+                                                LOGGER.info(
+                                                        "Spawning a new thread for message with ID {}",
+                                                        message.getId());
+                                                subscriber.onNext(message);
+                                            });
+                            newThread.start();
+                        } catch (InterruptedException e) {
+                            LOGGER.error(
+                                    "Issue in handling the mesages for the subscriber with consumer tag {}. {}",
+                                    consumerTag,
+                                    e);
+                            Thread.currentThread().interrupt();
+                        } catch (Exception e) {
+                            LOGGER.error(
+                                    "Issue in handling the mesages for the subscriber with consumer tag {}. {}",
+                                    consumerTag,
+                                    e);
+                        }
+                    }
+
+                    public void handleCancel(String consumerTag) throws IOException {
+                        LOGGER.error(
+                                "Recieved a consumer cancel notification for subscriber {}",
+                                consumerTag);
+                    }
+                };
+        amqpConnection
+                .getOrCreateChannel(
+                        ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName())
+                .basicConsume(queueName, false, consumer);
     }
 
     protected void receiveMessages() {
         try {
-        	amqpConnection.getOrCreateChannel(ConnectionType.SUBSCRIBER,getSettings().getQueueOrExchangeName()).basicQos(batchSize);
+            amqpConnection
+                    .getOrCreateChannel(
+                            ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName())
+                    .basicQos(batchSize);
             String queueName;
             if (useExchange) {
                 // Consume messages from an exchange
-            	getOrCreateExchange(ConnectionType.SUBSCRIBER);
+                getOrCreateExchange(ConnectionType.SUBSCRIBER);
                 /*
-                 * Create queue if not present based on the settings provided in the queue URI or configuration properties.
-                 * Sample URI format: amqp-exchange:myExchange?exchangeType=topic&routingKey=myRoutingKey&exclusive=false&autoDelete=false&durable=true
-                 * Default settings if not provided in the queue URI or properties: isDurable: true, autoDelete: false, isExclusive: false
-                 * The same settings are currently used during creation of exchange as well as queue.
-                 * TODO: This can be enhanced further to get the settings separately for exchange and queue from the URI
+                 * Create queue if not present based on the settings provided in the queue URI
+                 * or configuration properties. Sample URI format:
+                 * amqp-exchange:myExchange?exchangeType=topic&routingKey=myRoutingKey&exclusive
+                 * =false&autoDelete=false&durable=true Default settings if not provided in the
+                 * queue URI or properties: isDurable: true, autoDelete: false, isExclusive:
+                 * false The same settings are currently used during creation of exchange as
+                 * well as queue. TODO: This can be enhanced further to get the settings
+                 * separately for exchange and queue from the URI
                  */
-                final AMQP.Queue.DeclareOk declareOk = getOrCreateQueue(ConnectionType.SUBSCRIBER,
-                    String.format("bound_to_%s", settings.getQueueOrExchangeName()), settings.isDurable(),
-                    settings.isExclusive(), settings.autoDelete(),
-                    Maps.newHashMap());
+                final AMQP.Queue.DeclareOk declareOk =
+                        getOrCreateQueue(
+                                ConnectionType.SUBSCRIBER,
+                                String.format("bound_to_%s", settings.getQueueOrExchangeName()),
+                                settings.isDurable(),
+                                settings.isExclusive(),
+                                settings.autoDelete(),
+                                Maps.newHashMap());
                 // Bind the declared queue to exchange
                 queueName = declareOk.getQueue();
-                amqpConnection.getOrCreateChannel(ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName()).queueBind(queueName, settings.getQueueOrExchangeName(), settings.getRoutingKey());
+                amqpConnection
+                        .getOrCreateChannel(
+                                ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName())
+                        .queueBind(
+                                queueName,
+                                settings.getQueueOrExchangeName(),
+                                settings.getRoutingKey());
             } else {
                 // Consume messages from a queue
                 queueName = getOrCreateQueue(ConnectionType.SUBSCRIBER).getQueue();
@@ -449,6 +741,56 @@ public class AMQPObservableQueue implements ObservableQueue {
             // Consume messages
             LOGGER.info("Consuming from queue {}", queueName);
             receiveMessagesFromQueue(queueName);
+        } catch (Exception exception) {
+            LOGGER.error("Exception while getting messages from RabbitMQ", exception);
+            Monitors.recordObservableQMessageReceivedErrors(getType());
+        }
+    }
+
+    protected void receiveMessages(Subscriber<? super Message> subscriber) {
+        try {
+            amqpConnection
+                    .getOrCreateChannel(
+                            ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName())
+                    .basicQos(batchSize);
+            String queueName;
+            if (useExchange) {
+                // Consume messages from an exchange
+                getOrCreateExchange(ConnectionType.SUBSCRIBER);
+                /*
+                 * Create queue if not present based on the settings provided in the queue URI
+                 * or configuration properties. Sample URI format:
+                 * amqp-exchange:myExchange?exchangeType=topic&routingKey=myRoutingKey&exclusive
+                 * =false&autoDelete=false&durable=true Default settings if not provided in the
+                 * queue URI or properties: isDurable: true, autoDelete: false, isExclusive:
+                 * false The same settings are currently used during creation of exchange as
+                 * well as queue. TODO: This can be enhanced further to get the settings
+                 * separately for exchange and queue from the URI
+                 */
+                final AMQP.Queue.DeclareOk declareOk =
+                        getOrCreateQueue(
+                                ConnectionType.SUBSCRIBER,
+                                String.format("bound_to_%s", settings.getQueueOrExchangeName()),
+                                settings.isDurable(),
+                                settings.isExclusive(),
+                                settings.autoDelete(),
+                                Maps.newHashMap());
+                // Bind the declared queue to exchange
+                queueName = declareOk.getQueue();
+                amqpConnection
+                        .getOrCreateChannel(
+                                ConnectionType.SUBSCRIBER, getSettings().getQueueOrExchangeName())
+                        .queueBind(
+                                queueName,
+                                settings.getQueueOrExchangeName(),
+                                settings.getRoutingKey());
+            } else {
+                // Consume messages from a queue
+                queueName = getOrCreateQueue(ConnectionType.SUBSCRIBER).getQueue();
+            }
+            // Consume messages
+            LOGGER.info("Consuming from queue {}", queueName);
+            receiveMessagesFromQueue(queueName, subscriber);
         } catch (Exception exception) {
             LOGGER.error("Exception while getting messages from RabbitMQ", exception);
             Monitors.recordObservableQMessageReceivedErrors(getType());

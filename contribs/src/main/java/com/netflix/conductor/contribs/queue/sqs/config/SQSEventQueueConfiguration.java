@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,24 +12,26 @@
  */
 package com.netflix.conductor.contribs.queue.sqs.config;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.netflix.conductor.common.metadata.tasks.Task.Status;
-import com.netflix.conductor.contribs.queue.sqs.SQSObservableQueue.Builder;
-import com.netflix.conductor.core.config.ConductorProperties;
-import com.netflix.conductor.core.events.EventQueueProvider;
-import com.netflix.conductor.core.events.queue.ObservableQueue;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.netflix.conductor.contribs.queue.sqs.SQSObservableQueue.Builder;
+import com.netflix.conductor.core.config.ConductorProperties;
+import com.netflix.conductor.core.events.EventQueueProvider;
+import com.netflix.conductor.core.events.queue.ObservableQueue;
+import com.netflix.conductor.model.TaskModel.Status;
+
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.services.sqs.AmazonSQSClient;
 import rx.Scheduler;
 
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 @Configuration
 @EnableConfigurationProperties(SQSEventQueueProperties.class)
 @ConditionalOnProperty(name = "conductor.event-queues.sqs.enabled", havingValue = "true")
@@ -42,25 +44,31 @@ public class SQSEventQueueConfiguration {
     }
 
     @Bean
-    public EventQueueProvider sqsEventQueueProvider(AmazonSQSClient sqsClient, SQSEventQueueProperties properties,
-        Scheduler scheduler) {
+    public EventQueueProvider sqsEventQueueProvider(
+            AmazonSQSClient sqsClient, SQSEventQueueProperties properties, Scheduler scheduler) {
         return new SQSEventQueueProvider(sqsClient, properties, scheduler);
     }
 
-    @ConditionalOnProperty(name = "conductor.default-event-queue.type", havingValue = "sqs", matchIfMissing = true)
+    @ConditionalOnProperty(
+            name = "conductor.default-event-queue.type",
+            havingValue = "sqs",
+            matchIfMissing = true)
     @Bean
-    public Map<Status, ObservableQueue> getQueues(ConductorProperties conductorProperties,
-        SQSEventQueueProperties properties, AmazonSQSClient sqsClient) {
+    public Map<Status, ObservableQueue> getQueues(
+            ConductorProperties conductorProperties,
+            SQSEventQueueProperties properties,
+            AmazonSQSClient sqsClient) {
         String stack = "";
         if (conductorProperties.getStack() != null && conductorProperties.getStack().length() > 0) {
             stack = conductorProperties.getStack() + "_";
         }
-        Status[] statuses = new Status[]{Status.COMPLETED, Status.FAILED};
+        Status[] statuses = new Status[] {Status.COMPLETED, Status.FAILED};
         Map<Status, ObservableQueue> queues = new HashMap<>();
         for (Status status : statuses) {
-            String queuePrefix = StringUtils.isBlank(properties.getListenerQueuePrefix())
-                ? conductorProperties.getAppId() + "_sqs_notify_" + stack
-                : properties.getListenerQueuePrefix();
+            String queuePrefix =
+                    StringUtils.isBlank(properties.getListenerQueuePrefix())
+                            ? conductorProperties.getAppId() + "_sqs_notify_" + stack
+                            : properties.getListenerQueuePrefix();
 
             String queueName = queuePrefix + status.name();
 
