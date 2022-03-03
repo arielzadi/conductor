@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package com.netflix.conductor.contribs.storage;
+package com.netflix.conductor.contribs.storage.s3;
 
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.conductor.common.run.ExternalStorageLocation;
 import com.netflix.conductor.common.utils.ExternalPayloadStorage;
-import com.netflix.conductor.contribs.storage.config.S3Properties;
 import com.netflix.conductor.core.exception.ApplicationException;
 import com.netflix.conductor.core.utils.IDGenerator;
 
