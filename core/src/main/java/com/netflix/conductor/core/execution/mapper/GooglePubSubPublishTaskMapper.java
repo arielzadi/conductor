@@ -21,6 +21,8 @@ import com.netflix.conductor.common.run.Workflow;
 import com.netflix.conductor.core.exception.TerminateWorkflowException;
 import com.netflix.conductor.core.utils.ParametersUtils;
 import com.netflix.conductor.dao.MetadataDAO;
+import com.netflix.conductor.model.TaskModel;
+import com.netflix.conductor.model.WorkflowModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,42 +60,35 @@ public class GooglePubSubPublishTaskMapper implements TaskMapper {
      * @throws TerminateWorkflowException In case if the task definition does not exist
      */
     @Override
-    public List<Task> getMappedTasks(TaskMapperContext taskMapperContext) throws TerminateWorkflowException {
+    public List<TaskModel> getMappedTasks(TaskMapperContext taskMapperContext) throws TerminateWorkflowException {
 
         LOGGER.debug("TaskMapperContext {} in GooglePubSubPublishTaskMapper", taskMapperContext);
 
-        WorkflowTask taskToSchedule = taskMapperContext.getTaskToSchedule();
-        Workflow workflowInstance = taskMapperContext.getWorkflowInstance();
+        WorkflowTask workflowTask = taskMapperContext.getWorkflowTask();
+        WorkflowModel workflowModel = taskMapperContext.getWorkflowModel();
         String taskId = taskMapperContext.getTaskId();
         int retryCount = taskMapperContext.getRetryCount();
 
-        TaskDef taskDefinition = Optional.ofNullable(taskMapperContext.getTaskDefinition())
-            .orElseGet(() -> Optional.ofNullable(metadataDAO.getTaskDef(taskToSchedule.getName()))
-                .orElse(null));
+        TaskDef taskDefinition =
+                Optional.ofNullable(taskMapperContext.getTaskDefinition())
+                        .orElseGet(() -> Optional.ofNullable(metadataDAO.getTaskDef(workflowTask.getName()))
+                        .orElse(null));
 
         Map<String, Object> input = parametersUtils
-            .getTaskInputV2(taskToSchedule.getInputParameters(), workflowInstance, taskId, taskDefinition);
+            .getTaskInputV2(workflowTask.getInputParameters(), workflowModel, taskId, taskDefinition);
 
-        Task googlePubSubPublishTask = new Task();
-        googlePubSubPublishTask.setTaskType(taskToSchedule.getType());
-        googlePubSubPublishTask.setTaskDefName(taskToSchedule.getName());
-        googlePubSubPublishTask.setReferenceTaskName(taskToSchedule.getTaskReferenceName());
-        googlePubSubPublishTask.setWorkflowInstanceId(workflowInstance.getWorkflowId());
-        googlePubSubPublishTask.setWorkflowType(workflowInstance.getWorkflowName());
-        googlePubSubPublishTask.setCorrelationId(workflowInstance.getCorrelationId());
-        googlePubSubPublishTask.setScheduledTime(System.currentTimeMillis());
-        googlePubSubPublishTask.setTaskId(taskId);
+        TaskModel googlePubSubPublishTask = taskMapperContext.createTaskModel();
         googlePubSubPublishTask.setInputData(input);
-        googlePubSubPublishTask.setStatus(Task.Status.SCHEDULED);
+        googlePubSubPublishTask.setStatus(TaskModel.Status.SCHEDULED);
         googlePubSubPublishTask.setRetryCount(retryCount);
-        googlePubSubPublishTask.setCallbackAfterSeconds(taskToSchedule.getStartDelay());
-        googlePubSubPublishTask.setWorkflowTask(taskToSchedule);
-        googlePubSubPublishTask.setWorkflowPriority(workflowInstance.getPriority());
+        googlePubSubPublishTask.setCallbackAfterSeconds(workflowTask.getStartDelay());
+
         if (Objects.nonNull(taskDefinition)) {
             googlePubSubPublishTask.setExecutionNameSpace(taskDefinition.getExecutionNameSpace());
             googlePubSubPublishTask.setIsolationGroupId(taskDefinition.getIsolationGroupId());
             googlePubSubPublishTask.setRateLimitPerFrequency(taskDefinition.getRateLimitPerFrequency());
-            googlePubSubPublishTask.setRateLimitFrequencyInSeconds(taskDefinition.getRateLimitFrequencyInSeconds());
+            googlePubSubPublishTask.setRateLimitFrequencyInSeconds(
+                    taskDefinition.getRateLimitFrequencyInSeconds());
         }
         return Collections.singletonList(googlePubSubPublishTask);
     }
