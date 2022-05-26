@@ -12,8 +12,6 @@
  */
 package com.netflix.conductor.core.execution.mapper;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +24,6 @@ import com.netflix.conductor.common.metadata.tasks.TaskDef;
 import com.netflix.conductor.common.metadata.tasks.TaskType;
 import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
-import com.netflix.conductor.common.utils.TaskUtils;
 import com.netflix.conductor.dao.MetadataDAO;
 import com.netflix.conductor.model.TaskModel;
 import com.netflix.conductor.model.WorkflowModel;
@@ -63,60 +60,34 @@ public class DoWhileTaskMapper implements TaskMapper {
      */
     @Override
     public List<TaskModel> getMappedTasks(TaskMapperContext taskMapperContext) {
-
         LOGGER.debug("TaskMapperContext {} in DoWhileTaskMapper", taskMapperContext);
 
-        WorkflowTask taskToSchedule = taskMapperContext.getTaskToSchedule();
-        WorkflowModel workflowInstance = taskMapperContext.getWorkflowInstance();
+        WorkflowTask workflowTask = taskMapperContext.getWorkflowTask();
+        WorkflowModel workflowModel = taskMapperContext.getWorkflowModel();
 
-        TaskModel task = workflowInstance.getTaskByRefName(taskToSchedule.getTaskReferenceName());
+        TaskModel task = workflowModel.getTaskByRefName(workflowTask.getTaskReferenceName());
         if (task != null && task.getStatus().isTerminal()) {
             // Since loopTask is already completed no need to schedule task again.
-            return Collections.emptyList();
+            return List.of();
         }
 
-        String taskId = taskMapperContext.getTaskId();
-        List<TaskModel> tasksToBeScheduled = new ArrayList<>();
-        int retryCount = taskMapperContext.getRetryCount();
         TaskDef taskDefinition =
                 Optional.ofNullable(taskMapperContext.getTaskDefinition())
                         .orElseGet(
                                 () ->
                                         Optional.ofNullable(
                                                         metadataDAO.getTaskDef(
-                                                                taskToSchedule.getName()))
+                                                                workflowTask.getName()))
                                                 .orElseGet(TaskDef::new));
 
-        TaskModel loopTask = new TaskModel();
-        loopTask.setTaskType(TaskType.TASK_TYPE_DO_WHILE);
-        loopTask.setTaskDefName(taskToSchedule.getName());
-        loopTask.setReferenceTaskName(taskToSchedule.getTaskReferenceName());
-        loopTask.setWorkflowInstanceId(workflowInstance.getWorkflowId());
-        loopTask.setCorrelationId(workflowInstance.getCorrelationId());
-        loopTask.setWorkflowType(workflowInstance.getWorkflowName());
-        loopTask.setScheduledTime(System.currentTimeMillis());
-        loopTask.setTaskId(taskId);
-        loopTask.setIteration(1);
-        loopTask.setStatus(TaskModel.Status.IN_PROGRESS);
-        loopTask.setWorkflowTask(taskToSchedule);
-        loopTask.setRateLimitPerFrequency(taskDefinition.getRateLimitPerFrequency());
-        loopTask.setRateLimitFrequencyInSeconds(taskDefinition.getRateLimitFrequencyInSeconds());
+        TaskModel doWhileTask = taskMapperContext.createTaskModel();
+        doWhileTask.setTaskType(TaskType.TASK_TYPE_DO_WHILE);
+        doWhileTask.setStatus(TaskModel.Status.IN_PROGRESS);
+        doWhileTask.setStartTime(System.currentTimeMillis());
+        doWhileTask.setRateLimitPerFrequency(taskDefinition.getRateLimitPerFrequency());
+        doWhileTask.setRateLimitFrequencyInSeconds(taskDefinition.getRateLimitFrequencyInSeconds());
+        doWhileTask.setRetryCount(taskMapperContext.getRetryCount());
 
-        tasksToBeScheduled.add(loopTask);
-        List<WorkflowTask> loopOverTasks = taskToSchedule.getLoopOver();
-        List<TaskModel> tasks2 =
-                taskMapperContext
-                        .getDeciderService()
-                        .getTasksToBeScheduled(workflowInstance, loopOverTasks.get(0), retryCount);
-        tasks2.forEach(
-                t -> {
-                    t.setReferenceTaskName(
-                            TaskUtils.appendIteration(
-                                    t.getReferenceTaskName(), loopTask.getIteration()));
-                    t.setIteration(loopTask.getIteration());
-                });
-        tasksToBeScheduled.addAll(tasks2);
-
-        return tasksToBeScheduled;
+        return List.of(doWhileTask);
     }
 }
