@@ -18,6 +18,7 @@ import com.netflix.conductor.common.utils.ExternalPayloadStorage;
 import com.netflix.conductor.core.exception.ApplicationException;
 import java.time.Duration;
 
+import com.netflix.conductor.core.utils.IDGenerator;
 import com.netflix.conductor.gcs.config.GCSProperties;
 import org.junit.Before;
 import org.junit.Rule;
@@ -58,12 +59,12 @@ public class GoogleCloudPayloadStorageTest {
     public void testMissingBucketName() {
         expectedException.expect(ApplicationException.class);
         when(properties.getBucketName()).thenReturn(null);
-        new GoogleCloudPayloadStorage(properties, LocalStorageHelper.getOptions());
+        new GoogleCloudPayloadStorage(new IDGenerator(), properties, LocalStorageHelper.getOptions());
     }
 
     @Test
     public void testGetLocationFixedPath() {
-        GoogleCloudPayloadStorage googleCloudPayloadStorage = new GoogleCloudPayloadStorage(properties, LocalStorageHelper.getOptions());
+        GoogleCloudPayloadStorage googleCloudPayloadStorage = new GoogleCloudPayloadStorage(new IDGenerator(), properties, LocalStorageHelper.getOptions());
         String path = "somewhere";
         ExternalStorageLocation externalStorageLocation = googleCloudPayloadStorage
             .getLocation(ExternalPayloadStorage.Operation.READ, ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT,
@@ -87,7 +88,7 @@ public class GoogleCloudPayloadStorageTest {
 
     @Test
     public void testGetAllLocations() {
-        GoogleCloudPayloadStorage googleCloudPayloadStorage = new GoogleCloudPayloadStorage(properties);
+        GoogleCloudPayloadStorage googleCloudPayloadStorage = new GoogleCloudPayloadStorage(new IDGenerator(), properties);
 
         testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.READ,
             ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT, properties.getWorkflowInputPath());

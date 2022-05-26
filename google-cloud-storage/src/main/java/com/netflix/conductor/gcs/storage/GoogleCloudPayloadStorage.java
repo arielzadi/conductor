@@ -42,6 +42,8 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
     private static final Logger LOGGER = LoggerFactory.getLogger(GoogleCloudPayloadStorage.class);
     private static final String CONTENT_TYPE = "application/json";
 
+    private final IDGenerator idGenerator;
+
     private final String workflowInputPath;
     private final String workflowOutputPath;
     private final String taskInputPath;
@@ -52,17 +54,17 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
     private final long expirationSec;
 
 
-    public GoogleCloudPayloadStorage(GCSProperties properties) {
-        this(properties, null);
+    public GoogleCloudPayloadStorage(IDGenerator idGenerator, GCSProperties properties) {
+        this(idGenerator, properties, null);
     }
 
-    public GoogleCloudPayloadStorage(GCSProperties properties, @Nullable StorageOptions storageOptions) {
+    public GoogleCloudPayloadStorage(IDGenerator idGenerator, GCSProperties properties, @Nullable StorageOptions storageOptions) {
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder();
         // workaround for testing...
         if (storageOptions != null){
             storageOptionsBuilder = storageOptions.toBuilder();
         }
-
+        this.idGenerator = idGenerator;
         workflowInputPath = properties.getWorkflowInputPath();
         workflowOutputPath = properties.getWorkflowOutputPath();
         taskInputPath = properties.getTaskInputPath();
@@ -199,7 +201,7 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
                 stringBuilder.append(taskOutputPath);
                 break;
         }
-        stringBuilder.append(IDGenerator.generate()).append(".json");
+        stringBuilder.append(idGenerator.generate()).append(".json");
         return stringBuilder.toString();
     }
 }
