@@ -12,18 +12,20 @@
  */
 package com.netflix.conductor.gcs.storage;
 
-import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper;
-import com.netflix.conductor.common.run.ExternalStorageLocation;
-import com.netflix.conductor.common.utils.ExternalPayloadStorage;
-import com.netflix.conductor.core.exception.ApplicationException;
 import java.time.Duration;
 
-import com.netflix.conductor.core.utils.IDGenerator;
-import com.netflix.conductor.gcs.config.GCSProperties;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.netflix.conductor.common.run.ExternalStorageLocation;
+import com.netflix.conductor.common.utils.ExternalPayloadStorage;
+import com.netflix.conductor.core.exception.ApplicationException;
+import com.netflix.conductor.core.utils.IDGenerator;
+import com.netflix.conductor.gcs.config.GCSProperties;
+
+import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -34,8 +36,8 @@ import static org.mockito.Mockito.when;
 /**
  * Build path on external storage. mostly copied from AzureBlobPayloadStorageTest.
  *
- * **/
-
+ * <p>*
+ */
 public class GoogleCloudPayloadStorageTest {
 
     private GCSProperties properties;
@@ -52,33 +54,39 @@ public class GoogleCloudPayloadStorageTest {
         when(properties.getTaskOutputPath()).thenReturn("task/output/");
     }
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    @Rule public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testMissingBucketName() {
         expectedException.expect(ApplicationException.class);
         when(properties.getBucketName()).thenReturn(null);
-        new GoogleCloudPayloadStorage(new IDGenerator(), properties, LocalStorageHelper.getOptions());
+        new GoogleCloudPayloadStorage(
+                new IDGenerator(), properties, LocalStorageHelper.getOptions());
     }
 
     @Test
     public void testGetLocationFixedPath() {
-        GoogleCloudPayloadStorage googleCloudPayloadStorage = new GoogleCloudPayloadStorage(new IDGenerator(), properties, LocalStorageHelper.getOptions());
+        GoogleCloudPayloadStorage googleCloudPayloadStorage =
+                new GoogleCloudPayloadStorage(
+                        new IDGenerator(), properties, LocalStorageHelper.getOptions());
         String path = "somewhere";
-        ExternalStorageLocation externalStorageLocation = googleCloudPayloadStorage
-            .getLocation(ExternalPayloadStorage.Operation.READ, ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT,
-                path);
+        ExternalStorageLocation externalStorageLocation =
+                googleCloudPayloadStorage.getLocation(
+                        ExternalPayloadStorage.Operation.READ,
+                        ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT,
+                        path);
         assertNotNull(externalStorageLocation);
         assertEquals(path, externalStorageLocation.getPath());
         assertNotNull(externalStorageLocation.getUri());
     }
 
-    private void testGetLocation(GoogleCloudPayloadStorage googleCloudPayloadStorage,
-        ExternalPayloadStorage.Operation operation, ExternalPayloadStorage.PayloadType payloadType,
-        String expectedPath) {
-        ExternalStorageLocation externalStorageLocation = googleCloudPayloadStorage
-            .getLocation(operation, payloadType, null);
+    private void testGetLocation(
+            GoogleCloudPayloadStorage googleCloudPayloadStorage,
+            ExternalPayloadStorage.Operation operation,
+            ExternalPayloadStorage.PayloadType payloadType,
+            String expectedPath) {
+        ExternalStorageLocation externalStorageLocation =
+                googleCloudPayloadStorage.getLocation(operation, payloadType, null);
         assertNotNull(externalStorageLocation);
         assertNotNull(externalStorageLocation.getPath());
         assertTrue(externalStorageLocation.getPath().startsWith(expectedPath));
@@ -88,24 +96,49 @@ public class GoogleCloudPayloadStorageTest {
 
     @Test
     public void testGetAllLocations() {
-        GoogleCloudPayloadStorage googleCloudPayloadStorage = new GoogleCloudPayloadStorage(new IDGenerator(), properties);
+        GoogleCloudPayloadStorage googleCloudPayloadStorage =
+                new GoogleCloudPayloadStorage(new IDGenerator(), properties);
 
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.READ,
-            ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT, properties.getWorkflowInputPath());
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.READ,
-            ExternalPayloadStorage.PayloadType.WORKFLOW_OUTPUT, properties.getWorkflowOutputPath());
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.READ,
-            ExternalPayloadStorage.PayloadType.TASK_INPUT, properties.getTaskInputPath());
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.READ,
-            ExternalPayloadStorage.PayloadType.TASK_OUTPUT, properties.getTaskOutputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.READ,
+                ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT,
+                properties.getWorkflowInputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.READ,
+                ExternalPayloadStorage.PayloadType.WORKFLOW_OUTPUT,
+                properties.getWorkflowOutputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.READ,
+                ExternalPayloadStorage.PayloadType.TASK_INPUT,
+                properties.getTaskInputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.READ,
+                ExternalPayloadStorage.PayloadType.TASK_OUTPUT,
+                properties.getTaskOutputPath());
 
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.WRITE,
-            ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT, properties.getWorkflowInputPath());
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.WRITE,
-            ExternalPayloadStorage.PayloadType.WORKFLOW_OUTPUT, properties.getWorkflowOutputPath());
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.WRITE,
-            ExternalPayloadStorage.PayloadType.TASK_INPUT, properties.getTaskInputPath());
-        testGetLocation(googleCloudPayloadStorage, ExternalPayloadStorage.Operation.WRITE,
-            ExternalPayloadStorage.PayloadType.TASK_OUTPUT, properties.getTaskOutputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.WRITE,
+                ExternalPayloadStorage.PayloadType.WORKFLOW_INPUT,
+                properties.getWorkflowInputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.WRITE,
+                ExternalPayloadStorage.PayloadType.WORKFLOW_OUTPUT,
+                properties.getWorkflowOutputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.WRITE,
+                ExternalPayloadStorage.PayloadType.TASK_INPUT,
+                properties.getTaskInputPath());
+        testGetLocation(
+                googleCloudPayloadStorage,
+                ExternalPayloadStorage.Operation.WRITE,
+                ExternalPayloadStorage.PayloadType.TASK_OUTPUT,
+                properties.getTaskOutputPath());
     }
 }

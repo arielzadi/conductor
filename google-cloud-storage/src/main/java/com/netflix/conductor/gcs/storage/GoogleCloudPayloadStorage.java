@@ -12,31 +12,32 @@
  */
 package com.netflix.conductor.gcs.storage;
 
-
-import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.storage.*;
-import com.google.common.io.ByteStreams;
-import com.netflix.conductor.common.run.ExternalStorageLocation;
-import com.netflix.conductor.common.utils.ExternalPayloadStorage;
-import com.netflix.conductor.core.exception.ApplicationException;
-import com.netflix.conductor.core.utils.IDGenerator;
-
 import java.io.*;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.conductor.gcs.config.GCSProperties;
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
+import com.netflix.conductor.common.run.ExternalStorageLocation;
+import com.netflix.conductor.common.utils.ExternalPayloadStorage;
+import com.netflix.conductor.core.exception.ApplicationException;
+import com.netflix.conductor.core.utils.IDGenerator;
+import com.netflix.conductor.gcs.config.GCSProperties;
+
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.storage.*;
+import com.google.common.io.ByteStreams;
 
 /**
- * An implementation of {@link ExternalPayloadStorage} using Google Cloud Storage for storing large JSON payload data.
+ * An implementation of {@link ExternalPayloadStorage} using Google Cloud Storage for storing large
+ * JSON payload data.
  *
- * @see <a href="https://github.com/GoogleCloudPlatform/java-docs-samples">Google Cloud Storage SDK</a>
+ * @see <a href="https://github.com/GoogleCloudPlatform/java-docs-samples">Google Cloud Storage
+ *     SDK</a>
  */
-
 public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GoogleCloudPayloadStorage.class);
@@ -53,15 +54,17 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
     private final String bucketName;
     private final long expirationSec;
 
-
     public GoogleCloudPayloadStorage(IDGenerator idGenerator, GCSProperties properties) {
         this(idGenerator, properties, null);
     }
 
-    public GoogleCloudPayloadStorage(IDGenerator idGenerator, GCSProperties properties, @Nullable StorageOptions storageOptions) {
+    public GoogleCloudPayloadStorage(
+            IDGenerator idGenerator,
+            GCSProperties properties,
+            @Nullable StorageOptions storageOptions) {
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder();
         // workaround for testing...
-        if (storageOptions != null){
+        if (storageOptions != null) {
             storageOptionsBuilder = storageOptions.toBuilder();
         }
         this.idGenerator = idGenerator;
@@ -74,21 +77,22 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
         String googleApplicationCredentialsPath = properties.getGoogleApplicationCredentialsPath();
         String bucketName = properties.getBucketName();
 
-
         if (projectId != null) {
             storageOptionsBuilder.setProjectId(projectId);
         }
         if (bucketName != null) {
             this.bucketName = bucketName;
-        }else {
+        } else {
             String msg = "GCS bucket name missing!";
             LOGGER.error(msg);
             throw new ApplicationException(ApplicationException.Code.BACKEND_ERROR, msg);
         }
         if (googleApplicationCredentialsPath != null) {
-            try{
-                storageOptionsBuilder.setCredentials(ServiceAccountCredentials.fromStream(new FileInputStream(googleApplicationCredentialsPath)));
-            }catch (FileNotFoundException e) {
+            try {
+                storageOptionsBuilder.setCredentials(
+                        ServiceAccountCredentials.fromStream(
+                                new FileInputStream(googleApplicationCredentialsPath)));
+            } catch (FileNotFoundException e) {
                 String msg = "Could not load googleApplicationCredentialsPath";
                 LOGGER.error(msg);
                 throw new ApplicationException(ApplicationException.Code.BACKEND_ERROR, msg);
@@ -107,13 +111,14 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
     }
 
     /**
-     * @param operation   the type of {@link Operation} to be performed
+     * @param operation the type of {@link Operation} to be performed
      * @param payloadType the {@link PayloadType} that is being accessed
-     * @return a {@link ExternalStorageLocation} object which contains the pre-signed URL and the azure blob name for
-     * the json payload
+     * @return a {@link ExternalStorageLocation} object which contains the pre-signed URL and the
+     *     azure blob name for the json payload
      */
     @Override
-    public ExternalStorageLocation getLocation(Operation operation, PayloadType payloadType, String path) {
+    public ExternalStorageLocation getLocation(
+            Operation operation, PayloadType payloadType, String path) {
         try {
             ExternalStorageLocation externalStorageLocation = new ExternalStorageLocation();
 
@@ -138,11 +143,12 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
     }
 
     /**
-     * Uploads the payload to the given GCS object name. It is expected that the caller retrieves the object name using
-     * {@link #getLocation(Operation, PayloadType, String)} before making this call.
+     * Uploads the payload to the given GCS object name. It is expected that the caller retrieves
+     * the object name using {@link #getLocation(Operation, PayloadType, String)} before making this
+     * call.
      *
-     * @param path        the name of the object to be uploaded
-     * @param payload     an {@link InputStream} containing the json payload which is to be uploaded
+     * @param path the name of the object to be uploaded
+     * @param payload an {@link InputStream} containing the json payload which is to be uploaded
      * @param payloadSize the size of the json payload in bytes
      */
     @Override
@@ -164,7 +170,8 @@ public class GoogleCloudPayloadStorage implements ExternalPayloadStorage {
      * Downloads the payload stored in an azure blob.
      *
      * @param path the path of the object
-     * @return an input stream containing the contents of the object Caller is expected to close the input stream.
+     * @return an input stream containing the contents of the object Caller is expected to close the
+     *     input stream.
      */
     @Override
     public InputStream download(String path) {

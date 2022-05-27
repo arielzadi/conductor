@@ -12,29 +12,32 @@
  */
 package com.netflix.conductor.core.execution.mapper;
 
-import com.netflix.conductor.common.metadata.tasks.Task;
-import com.netflix.conductor.common.metadata.tasks.TaskDef;
-import com.netflix.conductor.common.metadata.tasks.TaskType;
-import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
-import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
-import com.netflix.conductor.common.run.Workflow;
-import com.netflix.conductor.core.exception.TerminateWorkflowException;
-import com.netflix.conductor.core.utils.ParametersUtils;
-import com.netflix.conductor.dao.MetadataDAO;
-import com.netflix.conductor.model.TaskModel;
-import com.netflix.conductor.model.WorkflowModel;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import com.netflix.conductor.common.metadata.tasks.TaskDef;
+import com.netflix.conductor.common.metadata.tasks.TaskType;
+import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
+import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
+import com.netflix.conductor.core.exception.TerminateWorkflowException;
+import com.netflix.conductor.core.utils.ParametersUtils;
+import com.netflix.conductor.dao.MetadataDAO;
+import com.netflix.conductor.model.TaskModel;
+import com.netflix.conductor.model.WorkflowModel;
 
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 @Component
 public class GooglePubSubPublishTaskMapper implements TaskMapper {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(GooglePubSubPublishTaskMapper.class);
+    public static final Logger LOGGER =
+            LoggerFactory.getLogger(GooglePubSubPublishTaskMapper.class);
 
     private final ParametersUtils parametersUtils;
     private final MetadataDAO metadataDAO;
@@ -51,16 +54,17 @@ public class GooglePubSubPublishTaskMapper implements TaskMapper {
     }
 
     /**
-     * This method maps a {@link WorkflowTask} of type {@link TaskType#CLOUD_PUBSUB_PUBLISH} to a {@link Task} in a {@link
-     * Task.Status#SCHEDULED} state
+     * This method maps a {@link WorkflowTask} of type {@link TaskType#CLOUD_PUBSUB_PUBLISH} to a
+     * {@link TaskModel} in a {@link TaskModel.Status#SCHEDULED} state
      *
-     * @param taskMapperContext: A wrapper class containing the {@link WorkflowTask}, {@link WorkflowDef}, {@link
-     *                           Workflow} and a string representation of the TaskId
+     * @param taskMapperContext: A wrapper class containing the {@link WorkflowTask}, {@link
+     *     WorkflowDef}, {@link WorkflowModel} and a string representation of the TaskId
      * @return a List with just one pub sub task
      * @throws TerminateWorkflowException In case if the task definition does not exist
      */
     @Override
-    public List<TaskModel> getMappedTasks(TaskMapperContext taskMapperContext) throws TerminateWorkflowException {
+    public List<TaskModel> getMappedTasks(TaskMapperContext taskMapperContext)
+            throws TerminateWorkflowException {
 
         LOGGER.debug("TaskMapperContext {} in GooglePubSubPublishTaskMapper", taskMapperContext);
 
@@ -71,11 +75,16 @@ public class GooglePubSubPublishTaskMapper implements TaskMapper {
 
         TaskDef taskDefinition =
                 Optional.ofNullable(taskMapperContext.getTaskDefinition())
-                        .orElseGet(() -> Optional.ofNullable(metadataDAO.getTaskDef(workflowTask.getName()))
-                        .orElse(null));
+                        .orElseGet(
+                                () ->
+                                        Optional.ofNullable(
+                                                        metadataDAO.getTaskDef(
+                                                                workflowTask.getName()))
+                                                .orElse(null));
 
-        Map<String, Object> input = parametersUtils
-            .getTaskInputV2(workflowTask.getInputParameters(), workflowModel, taskId, taskDefinition);
+        Map<String, Object> input =
+                parametersUtils.getTaskInputV2(
+                        workflowTask.getInputParameters(), workflowModel, taskId, taskDefinition);
 
         TaskModel googlePubSubPublishTask = taskMapperContext.createTaskModel();
         googlePubSubPublishTask.setInputData(input);
@@ -86,7 +95,8 @@ public class GooglePubSubPublishTaskMapper implements TaskMapper {
         if (Objects.nonNull(taskDefinition)) {
             googlePubSubPublishTask.setExecutionNameSpace(taskDefinition.getExecutionNameSpace());
             googlePubSubPublishTask.setIsolationGroupId(taskDefinition.getIsolationGroupId());
-            googlePubSubPublishTask.setRateLimitPerFrequency(taskDefinition.getRateLimitPerFrequency());
+            googlePubSubPublishTask.setRateLimitPerFrequency(
+                    taskDefinition.getRateLimitPerFrequency());
             googlePubSubPublishTask.setRateLimitFrequencyInSeconds(
                     taskDefinition.getRateLimitFrequencyInSeconds());
         }

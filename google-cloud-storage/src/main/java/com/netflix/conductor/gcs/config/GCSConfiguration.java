@@ -12,12 +12,13 @@
  */
 package com.netflix.conductor.gcs.config;
 
-import com.netflix.conductor.common.utils.ExternalPayloadStorage;
-import com.netflix.conductor.core.utils.IDGenerator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.netflix.conductor.common.utils.ExternalPayloadStorage;
+import com.netflix.conductor.core.utils.IDGenerator;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(GCSProperties.class)
@@ -27,6 +28,7 @@ public class GCSConfiguration {
     @Bean
     public ExternalPayloadStorage googleCloudPayloadStorage(
             IDGenerator idGenerator, GCSProperties properties) {
-        return new com.netflix.conductor.gcs.storage.GoogleCloudPayloadStorage(idGenerator, properties);
+        return new com.netflix.conductor.gcs.storage.GoogleCloudPayloadStorage(
+                idGenerator, properties);
     }
 }

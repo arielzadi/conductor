@@ -14,51 +14,36 @@ package com.netflix.conductor.gcs.config;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.DurationUnit;
 
 @ConfigurationProperties("conductor.external-payload-storage.gcs")
 public class GCSProperties {
 
-    /**
-     * The path to the JSON file that contains your service account key
-     */
+    /** The path to the JSON file that contains your service account key */
     private String googleApplicationCredentialsPath = null;
 
-    /**
-     * The ID of your GCP project
-     */
+    /** The ID of your GCP project */
     private String projectId = null;
 
-    /**
-     * The name of the bucket where the payloads will be stored
-     */
+    /** The name of the bucket where the payloads will be stored */
     private String bucketName = "conductor-payloads";
 
-    /**
-     * The time for which the shared access signature is valid
-     */
+    /** The time for which the shared access signature is valid */
     @DurationUnit(ChronoUnit.SECONDS)
     private Duration signedUrlExpirationDuration = Duration.ofSeconds(5);
 
-    /**
-     * The path at which the workflow inputs will be stored
-     */
+    /** The path at which the workflow inputs will be stored */
     private String workflowInputPath = "workflow/input/";
 
-    /**
-     * The path at which the workflow outputs will be stored
-     */
+    /** The path at which the workflow outputs will be stored */
     private String workflowOutputPath = "workflow/output/";
 
-    /**
-     * The path at which the task inputs will be stored
-     */
+    /** The path at which the task inputs will be stored */
     private String taskInputPath = "task/input/";
 
-    /**
-     * The path at which the task outputs will be stored
-     */
+    /** The path at which the task outputs will be stored */
     private String taskOutputPath = "task/output/";
 
     public String getProjectId() {

@@ -333,35 +333,43 @@ public @interface WorkflowTaskTypeConstraint {
             return valid;
         }
 
-        private boolean isGoogleCloudPubSubTaskValid(WorkflowTask workflowTask, ConstraintValidatorContext context) {
+        private boolean isGoogleCloudPubSubTaskValid(
+                WorkflowTask workflowTask, ConstraintValidatorContext context) {
             boolean valid = true;
             boolean isInputParameterSet = false;
             boolean isInputTemplateSet = false;
 
-            //Either kafka_request in WorkflowTask inputParam should be set or in inputTemplate Taskdef should be set
-            if (workflowTask.getInputParameters() != null && workflowTask.getInputParameters()
-                    .containsKey("google_pubsub_request")) {
+            // Either kafka_request in WorkflowTask inputParam should be set or in inputTemplate
+            // Taskdef should be set
+            if (workflowTask.getInputParameters() != null
+                    && workflowTask.getInputParameters().containsKey("google_pubsub_request")) {
                 isInputParameterSet = true;
             }
 
-            TaskDef taskDef = Optional.ofNullable(workflowTask.getTaskDefinition())
-                    .orElse(ValidationContext.getMetadataDAO().getTaskDef(workflowTask.getName()));
+            TaskDef taskDef =
+                    Optional.ofNullable(workflowTask.getTaskDefinition())
+                            .orElse(
+                                    ValidationContext.getMetadataDAO()
+                                            .getTaskDef(workflowTask.getName()));
 
-            if (taskDef != null && taskDef.getInputTemplate() != null && taskDef.getInputTemplate()
-                    .containsKey("google_pubsub_request")) {
+            if (taskDef != null
+                    && taskDef.getInputTemplate() != null
+                    && taskDef.getInputTemplate().containsKey("google_pubsub_request")) {
                 isInputTemplateSet = true;
             }
 
             if (!(isInputParameterSet || isInputTemplateSet)) {
-                String message = String
-                        .format(PARAM_REQUIRED_STRING_FORMAT, "inputParameters.google_pubsub_request", TaskType.TASK_TYPE_GOOGLE_CLOUD_PUBSUB,
+                String message =
+                        String.format(
+                                PARAM_REQUIRED_STRING_FORMAT,
+                                "inputParameters.google_pubsub_request",
+                                TaskType.TASK_TYPE_GOOGLE_CLOUD_PUBSUB,
                                 workflowTask.getName());
                 context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
                 valid = false;
             }
 
             return valid;
-
         }
 
         private boolean isForkJoinTaskValid(
