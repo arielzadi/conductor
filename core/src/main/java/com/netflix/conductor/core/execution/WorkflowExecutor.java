@@ -1496,7 +1496,7 @@ public class WorkflowExecutor {
                 if (task.getStatus() != null && !task.getStatus().isTerminal() && task.getStartTime() == 0) {
                     task.setStartTime(System.currentTimeMillis());
                 }
-                if (!workflowSystemTask.isAsync()) {
+                if (!workflowSystemTask.isAsync() || task.getRetryCount() == 0) {
                     try {
                         deciderService.populateTaskData(task);
                         workflowSystemTask.start(workflow, task, this);
